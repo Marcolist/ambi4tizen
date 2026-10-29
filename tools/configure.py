@@ -57,7 +57,7 @@ def load_config(path=PRIVATE):
             raise ValueError('TV source IP and Wi-Fi required')
     if sender['port'] != fw['udp_port'] or sender['zones'] not in (6,12,18,24) or sender['resolution'] not in ('480x270','320x180','160x90'):
         raise ValueError('sender layout/transport')
-    for name,lo,hi in [('interval_ms',500,10000),('duration_ms',0,3600000)]:
+    for name,lo,hi in [('interval_ms',250,10000),('duration_ms',0,3600000)]:
         if type(sender[name]) is not int or not lo <= sender[name] <= hi:
             raise ValueError(name)
     if 0 < sender['duration_ms'] < 1000:

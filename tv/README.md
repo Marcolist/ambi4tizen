@@ -31,7 +31,7 @@ Create the private file/header as described in the
 | zones | 6, 12, 18 or 24; default 12 |
 | edge_depth | 0.02–0.25; default 0.1 |
 | resolution | 480x270, alternatively 320x180 or 160x90 |
-| interval_ms | 1000; minimum supported value 500 |
+| interval_ms | 1000 by default; experimental minimum 250; target cadence, not a frame-rate guarantee |
 | duration_ms | 30000 by default; 0 explicitly selects continuous operation; otherwise 1000–3600000 |
 
 ```sh
@@ -72,6 +72,9 @@ UDP output occurs after successful cleanup and contains at most 120 bytes.
 Captures older than 1500 ms are not sent. Three consecutive processing/send
 errors stop the run. Default: roughly one capture per second for 30 seconds.
 This is a configured target, not a measured sustained TV rate.
+At an experimental 250-ms interval a capture taking longer than the interval
+reduces the delivered rate; captures still never overlap or build a backlog.
+Monitor sender/receiver counters and visible playback while testing higher rates.
 
 HTTP 18793 accepts only the private developer IP and bearer token.
 `GET /status` returns aggregate timings for broker, file read, JPEG decode,
@@ -79,6 +82,8 @@ zone processing, optional hashing and cleanup, plus initial/peak/latest RSS
 and heap. `continuous`, `running` and `stop_reason` describe sender state.
 `last_sent` contains only the most recently sent packet's averaged RGB zones,
 section counts, sequence, encoding-time age and current `capture_age_ms`.
+Its `width` and `height` report the decoded image dimensions; verify these
+when comparing requested capture resolutions, since device behavior may vary.
 It is null before the first successful send and is replaced rather than queued.
 Use its current age before interpreting colors as live. A successful UDP send
 does not prove reception or physical LED output. No JPEG or image pixels are

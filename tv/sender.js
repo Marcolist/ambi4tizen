@@ -15,7 +15,7 @@ exports.create = function (config, dependencies) {
         if (address.length !== 4 || !address.every(function (p) { return /^(0|[1-9][0-9]{0,2})$/.test(p) && Number(p) <= 255; }) ||
             Number(address[0]) === 0 || Number(address[0]) >= 224 || Number(address[3]) === 255 || Number(address[3]) === 0) throw new Error('unicast IPv4 required');
         if (config.port !== Math.floor(config.port) || config.port < 1024 || config.port > 65535 ||
-            config.interval_ms !== Math.floor(config.interval_ms) || config.interval_ms < 500 || config.interval_ms > 10000 ||
+            config.interval_ms !== Math.floor(config.interval_ms) || config.interval_ms < 250 || config.interval_ms > 10000 ||
             config.duration_ms !== Math.floor(config.duration_ms) || (config.duration_ms !== 0 && config.duration_ms < 1000) || config.duration_ms > 3600000 ||
             ['480x270', '320x180', '160x90'].indexOf(config.resolution) === -1 ||
             !(config.edge_depth >= 0.02 && config.edge_depth <= 0.25)) throw new Error('sender configuration');
@@ -62,6 +62,7 @@ exports.create = function (config, dependencies) {
                         var colors = [], count = packet.readUInt16BE(6);
                         for (var i = 0; i < count; i++) colors.push([packet[32 + 3*i], packet[33 + 3*i], packet[34 + 3*i]]);
                         metrics.last_sent = { sequence: packet.readUInt32BE(16), age_ms: packet.readUInt16BE(24),
+                            width: result.colors.width, height: result.colors.height,
                             sections: [packet[27], packet[28], packet[29]], zones_rgb: colors };
                         lastCaptureStart = result.started_ms;
                     }

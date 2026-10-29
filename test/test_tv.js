@@ -70,6 +70,7 @@ assert(closed && captured === 1 && sent.length === 1 && sender.metrics().sent ==
 var last = sender.metrics().last_sent;
 assert.strictEqual(last.sequence, sent[0].readUInt32BE(16));
 assert.strictEqual(last.age_ms, 10); assert.strictEqual(last.capture_age_ms, 10);
+assert.strictEqual(last.width, 160); assert.strictEqual(last.height, 90);
 assert.deepEqual(last.sections, summary(image).sections);
 assert.deepEqual(last.zones_rgb, summary(image).zones_rgb);
 last.zones_rgb[0][0] = -1; assert(sender.metrics().last_sent.zones_rgb[0][0] >= 0);

@@ -64,8 +64,10 @@ beyond 2³¹ ms in the same session requires a sender restart/new session.
 
 There is no retransmission or frame acknowledgment. Only the newest accepted
 frame is retained in the ESP queue. TV captures never overlap. The default run
-is 30 seconds at a target interval of 1000 ms; minimum supported interval is
-500 ms. Set `duration_ms=0` explicitly for no configured time limit. A slow capture lowers the actual rate instead of creating a queue.
+is 30 seconds at a target interval of 1000 ms; the experimental minimum is
+250 ms. This does not guarantee four frames per second. Set `duration_ms=0`
+explicitly for no configured time limit. A slow capture lowers the actual rate
+instead of creating a queue.
 Three consecutive processing/send errors stop the sender. A cleanup failure
 stops it immediately. UDP send success means the local OS accepted a datagram;
 receiver counters are needed to confirm delivery.

@@ -74,3 +74,6 @@ and launcher reopening under Node 4.4.3. Virtual-clock receiver tests span about
 69 days with clock drift and wrap, checking that a delayed frame cannot refresh
 the reference before passing the lag check. Bottom-right physical mapping and
 target-specific reserved GPIO exclusions are covered without touching hardware.
+The experimental 250-ms target is checked with captures shorter and longer
+than its interval: fast captures wait for the next slot; slow ones serialize
+without a backlog. Configuration values below the supported floor are rejected.

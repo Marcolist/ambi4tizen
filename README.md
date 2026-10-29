@@ -38,6 +38,7 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | Internal streaming apps | Changing colors in limited Netflix, Prime Video and Disney+ tests; no universal codec/HDR guarantee |
 | TV color plausibility | Live averaged RGB zones were compared with the visible TV image and judged plausible by the operator; physical LED color matching remains unverified |
 | New TV sender | Continuous operation tested on the TV; one 70-second post-update window delivered 70/70 frames to the S3 without new invalid/stale packets or sender errors; long-term reliability unverified |
+| Faster capture target | Experimental 250-ms target measured at about 3.83 sent frames/s in a 40-second live window; visible playback and physical LED latency need separate checks |
 | ESP32 firmware | Classic ESP32 and ESP32-S3 builds using ESP-IDF 5.5.6 / led_strip 3.1.1; S3 flashed, networking/NVS restart and 91-pixel driver initialization tested without connected LEDs |
 | Visible end-to-end test | Pending; a complete TV-to-LED solution has not yet been demonstrated |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
@@ -141,7 +142,7 @@ Before an active test, also configure these values locally:
 | `firmware.udp_port`, `sender.port` | Matching UDP port; default 19446 |
 | `sender.zones` | 6, 12, 18 or 24; default 12 |
 | `sender.resolution` | Initially `480x270` |
-| `sender.interval_ms` | Initially `1000` |
+| `sender.interval_ms` | Initially `1000`; experimental minimum `250`, subject to live load checks |
 | `sender.duration_ms` | Initially `30000`; `0` explicitly selects continuous operation |
 
 Set `sender.enabled=true` only before a deliberate active test. **Every TV
@@ -211,7 +212,7 @@ python3 tools/controller.py status
 ```
 
 The TV response's `last_sent` field contains the latest sent packet's averaged
-`zones_rgb`, `sections`, sequence and `capture_age_ms`. It is `null` before the
+`zones_rgb`, `sections`, sequence, decoded `width`/`height` and `capture_age_ms`. It is `null` before the
 first successful send. Check that `running=true`, the age is recent and the
 sequence advances. Colors left over from a stopped sender are not a live sample.
 Access uses the existing private developer-IP and bearer-token checks.
@@ -232,6 +233,38 @@ still follows the brightness and colors of the sampled image regions.
 Confirm delivery separately using increasing ESP `rx.accepted` counts and
 `effective=AMBILIGHT` with `stream=true`. UDP send success alone does not prove
 delivery or visible light. Keep live palettes and viewing logs private.
+
+## Timing and faster capture targets
+
+Sequential live checks of roughly 40 seconds produced these software timings:
+
+| Target interval | Sampled sent frames | Capture call to packet preparation, median / p95 | Observed send rate |
+| --- | --- | --- | --- |
+| 1000 ms | 41 | 245 / 266 ms | About 1 Hz |
+| 500 ms | 75 | 231 / 359 ms | About 2 Hz |
+| 250 ms | 131 | 217 / 319 ms | About 3.83 Hz |
+
+The 250-ms window counted 154 additional sends and 154 additional ESP accepted
+packets, with no new sender errors, invalid packets or freshness rejections.
+HTTP sampling missed some frames; the send rate uses the sender counter rather
+than the number of sampled palettes. These are short sequential observations:
+content and TV load were not held constant, and counter snapshots are not
+per-frame acknowledgments. They do not prove loss-free long-term operation.
+
+Set `sender.interval_ms=250` locally, rebuild, reinstall and launch to try the
+experimental target. The default stays at 1000 ms. Captures taking longer than
+the target lower the actual frame rate; captures never overlap or build a queue.
+Inspect receiver counters and visible playback after increasing the rate.
+
+On the tested TV, requesting 320×180 still returned a decoded 480×270 image
+and did not improve the comparison. Check `last_sent.width` and `height`
+before assuming that a requested resolution was honored.
+
+These timings start at the software capture request and end before packet
+encoding/UDP transport. They do not measure visible screen-to-LED delay.
+Sampling wait and the configured 150-ms smoothing time constant add response
+time; smoothing is gradual rather than a fixed 150-ms delay. A shared video of
+the screen and strip is needed to measure the visible end-to-end response.
 
 ## Continuous operation and LED preparation
 

@@ -72,5 +72,13 @@ class Configuration(unittest.TestCase):
         self.data['target']='esp32c6'
         with self.assertRaises(ValueError):self.load(self.data)
 
+    def test_experimental_interval_floor(self):
+        for value in (250,500,1000,10000):
+            self.data['sender']['interval_ms']=value
+            self.assertEqual(self.load(self.data)['sender']['interval_ms'],value)
+        for value in (0,249,250.5,10001,True):
+            self.data['sender']['interval_ms']=value
+            with self.subTest(value=value),self.assertRaises(ValueError):self.load(self.data)
+
 
 if __name__=='__main__':unittest.main()
