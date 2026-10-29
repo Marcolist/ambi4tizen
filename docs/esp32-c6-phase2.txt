@@ -1,58 +1,55 @@
-Phase 2: ESP32-C6, Zigbee und Hue – vorbereitete Schnittstellen
-Quellen geprüft am 29.10.2026. Noch nicht implementiert und nicht am C6 getestet.
+Phase 2: ESP32-C6, Zigbee and Hue – prepared interfaces
+Sources reviewed on 2026-10-29. Not implemented or tested on ESP32-C6.
 
-Der vorhandene klassische ESP-WROOM-32 ist Phase 1. Er hat kein integriertes
-802.15.4-Funkmodul für diesen späteren Zigbee-Aufbau. Keine neue Hardware ist
-Voraussetzung für die aktuelle Entwicklung und es erfolgt keine Kaufempfehlung.
+Phase 1 uses the classic ESP-WROOM-32. It has no integrated 802.15.4 radio for
+the future Zigbee design. New hardware is not a prerequisite for current work;
+this document is not a purchase recommendation.
 
-Portierbar sind Protokollparser, Stream-Frischeprüfung, Farbverarbeitung,
-Mode-Manager und Konfigurations-Codec. ESP-spezifisch bleiben WLAN, NVS,
-LED-Peripherie, Pins und Tasks. Der spätere Zigbee-Adapter soll On/Off, Level
-und statische RGB-/xy-Farben als ambi_command_t an denselben Main-Task senden.
-Zigbee-Callbacks dürfen nicht direkt auf LED-Treiber oder Mode-State zugreifen.
-Manuelles OFF/AMBIENT bleibt vorrangig; AUTO wird bewusst aktiviert. Hue soll
-die ganze Installation als eine Lampe steuern, WLAN weiterhin die Einzelzonen.
+Reusable components include the protocol parser, freshness gate, color engine,
+mode manager and configuration codec. Wi-Fi, NVS, LED peripherals, pins and
+tasks remain platform-specific. A future Zigbee adapter should feed On/Off,
+level and static RGB/xy colors into the same main-task ambi_command_t queue.
+Zigbee callbacks must not directly access LED drivers or mode state. Manual
+OFF/AMBIENT retain priority; AUTO is selected explicitly. Hue should control
+one lamp representing the whole strip, while Wi-Fi carries individual zones.
 
-SDK-STAND UND GEPLANTE PRÜFUNG
-- ESP-IDF 5.5.6 wird für den klassischen ESP32-Prototyp verwendet und gebaut.
-- Espressifs Zigbee-SDK empfiehlt derzeit ESP-IDF 5.5.4. Zigbee 2.x wird für
-  neue Entwicklungen empfohlen, 1.x wird als LTS mit Fehlerkorrekturen gepflegt.
-- Release Notes für Zigbee SDK 2.0.4 nennen Basis ESP-IDF 5.5.4; seit 2.0.1
-  wird zusätzlich ESP-IDF 6.0 genannt. Das ist keine pauschale Zusage für jede
-  neuere IDF-Version oder unsere noch nicht getestete 5.5.6-Kombination.
-- Phase 2 bekommt deshalb einen getrennt geprüften, exakt gepinnten SDK-/
-  Komponentenstand. C6-Target/Pins/SPI-DMA und Manifest-Constraints müssen
-  bewusst angepasst und neu gebaut werden. Der aktuelle Build ist nur esp32.
+SDK STATUS AND VALIDATION PLAN
+- The classic ESP32 prototype builds with ESP-IDF 5.5.6.
+- At the review date, Espressif's Zigbee SDK recommends ESP-IDF 5.5.4 and
+  recommends Zigbee 2.x for new designs; 1.x is maintained as bug-fix-only LTS.
+- Zigbee SDK 2.0.4 release notes name ESP-IDF 5.5.4 as the base. Version 2.0.1
+  added ESP-IDF 6.0 support. This does not guarantee every newer IDF version
+  or the project's untested Zigbee/IDF 5.5.6 combination.
+- Phase 2 therefore needs its own validated, exactly pinned SDK/component
+  combination. C6 target/pins/SPI-DMA and manifest constraints must be adapted
+  and rebuilt deliberately. The current build targets esp32 only.
 
-FUNK UND GERÄTEMODELL
-ESP32-C6 bietet WLAN und 802.15.4, teilt aber seine 2,4-GHz-Funkressource.
-WLAN-Farbdaten und Zigbee müssen koordiniert werden. Testkriterien: Join/Rejoin
-während UDP-Empfang, Paketverlust, Latenz, Antwortzeit auf OFF, Kanalbelegung,
-Speicherbedarf und fortgesetzte LED-Ausgabe. Keine garantierte gleichzeitige
-Vollauslastung beider Funkprotokolle annehmen.
+RADIO AND DEVICE MODEL
+ESP32-C6 provides Wi-Fi and 802.15.4 while sharing a 2.4-GHz radio resource.
+Wi-Fi colors and Zigbee must be coordinated. Test join/rejoin during UDP
+reception, packet loss, latency, OFF response, channel usage, memory demand and
+continued LED output. Do not assume simultaneous full throughput on both radios.
 
-Vorgesehen ist Zigbee Color Dimmable Light (0x0102) mit On/Off (0x0006),
-Level Control (0x0008) und Color Control (0x0300), ergänzt um notwendige
-Basic-/Identify-/Gruppen-/Szenenfunktionen nach dem ausgewählten SDK-Beispiel.
-Persistente Kopplung braucht eigene Stack-Partitionen und eine bewusste
-Trennung vom Ambilight-Konfigurationsnamensraum. Keine NVS-Komplettlöschung.
+The intended device is Zigbee Color Dimmable Light (0x0102) with On/Off (0x0006),
+Level Control (0x0008) and Color Control (0x0300), plus necessary Basic, Identify,
+groups and scenes support based on the selected SDK example. Persistent pairing
+requires dedicated stack partitions separated from Ambilight configuration.
+Do not erase all NVS.
 
-HUE IST UNBESTÄTIGT
-Ein Zigbee-3.0-Geräteprofil allein beweist keine Philips-Hue-Bridge-Kompatibilität.
-Praktisch zu testen: Aufnahme über die vorhandene Bridge, Farb-/Helligkeits-
-befehle, Aus/Ein, Szenen, Rejoin und Neustart mit erhaltener Kopplung. Erst nach
-diesen Tests darf von erfolgreicher Hue-Integration gesprochen werden.
-Keine Bridge- oder Zigbee-Netzwerkänderung ohne ausdrückliche Freigabe.
+HUE COMPATIBILITY IS UNCONFIRMED
+A Zigbee 3.0 device profile alone does not establish Philips Hue Bridge
+compatibility. Test actual joining, color/brightness commands, off/on, scenes,
+rejoin and restart with pairing retained before claiming successful integration.
+Do not change a bridge or Zigbee network without explicit approval.
 
-AUTOSTART
-Die Samsung-Autostartprüfung beginnt wie beauftragt erst nach sichtbarem
-Ambilight-Erfolg. Der aktuelle manuelle App-Start und ein ausblendbarer Dienst
-beweisen keinen Boot-Start. Reguläre Tizen-4.0-Lebenszyklus-/Hintergrundregeln
-des konkreten Geräts sind dann zu prüfen; kein Root und keine Systemdateien.
-Bis dahin ist zuverlässiger Autostart eine konkrete offene Voraussetzung für
-komfortablen Dauerbetrieb, nicht bereits gelöst oder für unmöglich erklärt.
+BOOT STARTUP
+Samsung boot-start investigation follows a visible end-to-end Ambilight success.
+Manual app launch and a hideable service do not establish boot startup. Review
+the specific TV's normal Tizen 4 lifecycle/background rules afterward, without
+root or system-file edits. Reliable startup remains an open requirement for
+convenient continuous operation; it is neither solved nor declared impossible.
 
-Primärquellen:
+Primary sources:
 https://github.com/espressif/esp-zigbee-sdk/blob/main/README.md
 https://github.com/espressif/esp-zigbee-sdk/blob/main/RELEASE_NOTES.md
 https://docs.espressif.com/projects/esp-zigbee-sdk/en/latest/esp32c6/introduction.html

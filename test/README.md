@@ -1,53 +1,52 @@
-# Lokale Tests ohne TV und GPIO
+# Local tests without a TV or GPIO
 
 ```sh
 bash test/run_all.sh
 ```
 
-Voraussetzungen: GCC mit ASan/UBSan, OpenSSL-Entwicklungsbibliothek, Python 3,
-Pillow und Node. Falls `.local/node-v4.4.3-linux-x64/bin/node` vorhanden ist,
-läuft derselbe TV-Test zusätzlich unter Node 4.4.3. Dieser Host-Runtime wurde
-beim lokalen Test von nodejs.org bezogen und gegen dessen SHA256-Liste geprüft.
-Er bildet die Node-API-Version des TV nach, nicht dessen ARM-CPU, Sandbox oder
-Prozesslebenszyklus. Ohne diesen Runtime meldet die Testsuite den ausgelassenen
-Kompatibilitätstest ausdrücklich.
+Requirements: GCC with ASan/UBSan, OpenSSL development libraries, Python 3,
+Pillow and Node. If `.local/node-v4.4.3-linux-x64/bin/node` exists, the same TV
+test also runs under Node 4.4.3. The host runtime used in validation was obtained
+from nodejs.org and checked against its SHA256 list. It reproduces the TV's
+Node API version, not its ARM CPU, sandbox or process lifecycle. If absent,
+the suite explicitly reports the skipped compatibility run.
 
-## Prüfungen
+## Coverage
 
-* Produktions-C-Parser: HMAC, jede Byteposition verändert, abgeschnittene Pakete,
-  Layoutfehler, 20.000 deterministisch erzeugte ungültige Pakete.
-* Stream-Zustand: Sequenz- und Zeitstempelüberlauf, Duplikate, altes Capture,
-  zusätzliche Empfangsverzögerung, Session-Wechsel und Wiederholung.
-* Produktions-Farbverarbeitung: U-Reihenfolge, Start/Richtung als bijektive
-  Zuordnung für 3, 17, 81, 87, 123, 599 und 600 LEDs, Eckeninterpolation,
-  Gamma-Endpunkte/Monotonie, zeitabhängige Glättung, sofortiges OFF, Limits.
-* Modusmanager: manuelle Priorität und beide AUTO-Rückfallzustände, Timeout.
-* Reconnect-Zustandsautomat: Backoff, Höchstintervall, Erfolg und erneuter Abbruch.
-* Persistenz: Konfigurations-Codec/CRC sowie tatsächliche NVS-Adapterfunktionen
-  mit Speicherstub, Fehlern bei Initialisierung/Schreiben/Commit und Profilwechsel.
-* Konfigurationstool: ungültige Werte, gesperrte Vorgaben, keine Überschreibung
-  bestehender privater Zugangsdaten und sichere C-String-Kodierung.
-* Deployment-Wrapper mit vollständig gemocktem I/O: deaktivierter Sender,
-  falsche Quell-IP und abweichende TV-Identität verhindern Start/Installation.
-* TV: echter JPEG-Decoder auf einem generierten Testbild; 6/12/18/24 Zonen,
-  200 Capture-Auswertungen je Runtime, kein paralleler Capture, Aufräumen nach
-  Broker-/Decoder-/Dimensions-/Pfadfehler, Senderstop nach drei alten Frames.
-* Integration: tatsächlicher Node-Sender mit Decoder → echtes UDP auf Loopback →
-  tatsächlicher C-Parser/Modusmanager/Farbverarbeitung. Ein unabhängiger
-  Python-Encoder prüft die Sprachgrenze. Prüft außerdem falsche Signatur,
-  Überlänge, altes Capture, Session-Sperre, Duplikat und Timeout nach OFF.
+* Production C parser: HMAC, mutation at every byte position, truncation,
+  invalid layout and 20,000 deterministically generated malformed packets.
+* Stream state: sequence/timestamp wrap, duplicates, stale capture, added arrival
+  delay, session takeover and replay.
+* Production color engine: U order, start/direction as a bijection for
+  3, 17, 81, 87, 123, 599 and 600 LEDs, corner interpolation, gamma endpoints/
+  monotonicity, time-dependent smoothing, immediate OFF and limits.
+* Mode manager: manual priority, both AUTO fallback states and timeout.
+* Reconnect state machine: backoff, maximum interval, success and disconnect.
+* Persistence: configuration codec/CRC and actual NVS adapter functions using
+  a memory stub, including initialization/write/commit failures and profile change.
+* Configuration tool: invalid values, disabled defaults, preservation of existing
+  private credentials and correct C string encoding.
+* Deployment wrapper with completely mocked I/O: disabled sender, incorrect
+  source IP and mismatched TV identity prevent launch/installation.
+* TV: actual JPEG decoder on a synthetic image, 6/12/18/24 zones, 200 capture
+  evaluations per runtime, no overlapping captures, cleanup on broker/decoder/
+  dimension/path errors and sender shutdown after three stale captures.
+* Integration: actual Node sender/decoder → real loopback UDP → actual C parser,
+  mode manager and color engine. An independent Python encoder checks language
+  interoperability, alongside invalid authentication, oversized packets, stale
+  captures, session lockout, duplicate rejection and timeout to OFF.
 
-Der TV-Broker und seine Dateierzeugung werden im Test injiziert; es wird kein
-TV kontaktiert. Temporäre Testbilder und Schlüssel liegen nur in `test/output/`.
-Der Simulator bindet ausschließlich `127.0.0.1`. Keine seriellen Ports,
-keine GPIOs und keine Router-/Hue-Änderungen. Aktuelles Node meldet wegen der
-für Node 4 notwendigen alten Buffer-Konstruktoren eine Deprecation-Meldung.
+Tests inject the TV broker and temporary-file boundary; no TV is contacted.
+Images and test keys are generated only in `test/output/`. The simulator binds
+only to `127.0.0.1`. No serial ports, GPIO, router or Hue changes are involved.
+Current Node versions emit a deprecation notice for the legacy Buffer
+constructors required by Node 4 compatibility.
 
-Diese Nachweise ersetzen keine Tests von Funk-Reconnect am ESP, NVS nach
-physischem Neustart, LED-Timing unter WLAN-Last oder Capture-Lebensdauer am TV.
-200 Fixture-Aufrufe beweisen auch keine generelle Speicherleckfreiheit auf Tizen.
+These checks do not replace real ESP radio reconnect, NVS after physical power
+cycling, LED timing under Wi-Fi load or TV capture lifetime tests. Two hundred
+fixture calls do not prove general memory-leak freedom on Tizen.
 
-## Simulator manuell verwenden
+## Run the simulator manually
 
 ```sh
 bash test/build_host.sh
@@ -56,14 +55,14 @@ python3 -c "from pathlib import Path; Path('test/output/test-psk.hex').write_tex
 test/build/receiver_sim test/output/test-psk.hex 19446 15 5 10 5
 ```
 
-In einem zweiten Terminal:
+In another terminal:
 
 ```sh
 python3 tools/pattern_sender.py --key-file test/output/test-psk.hex --seconds 5
 ```
 
-Der Simulator gibt vollständige LED-RGB-Listen als JSON aus. Port, Laufzeit und
-drei LED-Seitenlängen sind Argumente. Nach Ende des Musters folgt innerhalb von
-drei Sekunden OFF. Testschlüssel nie für ein echtes Gerät übernehmen.
-Für LAN-Übertragung verlangt der Mustersender ausdrücklich `--allow-lan`;
-diese Option ersetzt nicht die vereinbarte Hardwareprüfung/Freigabe.
+The simulator prints complete LED RGB lists as JSON. Its arguments select port,
+duration and three section LED counts. OFF follows within three seconds after
+the pattern ends. Never reuse a test key on real hardware. LAN transmission
+requires the pattern sender's explicit `--allow-lan` option; that option does
+not replace hardware review or approval.

@@ -1,38 +1,37 @@
-# ESP-WROOM-32-Prototyp
+# ESP-WROOM-32 prototype
 
-Die Firmware ist für den klassischen ESP32 mit ESP-IDF **5.5.6** gebaut.
-`espressif/led_strip` ist auf **3.1.1** festgelegt; `dependencies.lock` hält den
-aufgelösten Komponentenstand fest. Der lokale Build ist erfolgreich. Noch kein
-Flash und kein Nachweis am LED-Strip.
+The firmware builds for the classic ESP32 using **ESP-IDF 5.5.6**.
+`espressif/led_strip` is pinned to **3.1.1**; `dependencies.lock` records the
+resolved dependency. The local build passes. Flashing and physical LED output
+have not yet been tested.
 
-## Aufbau
+## Architecture
 
-| Modul | Aufgabe |
+| Module | Purpose |
 | --- | --- |
-| `ambilight_receiver` | WLAN, Reconnect, UDP, HMAC, Reihenfolge/Datenalter, Queue mit einem Frame |
-| `color_engine` | U-Mapping, Interpolation über Ecken, zeitbasierte Glättung, Gamma, Helligkeit und geschätzte Strombegrenzung |
-| `mode_manager` | OFF, AMBILIGHT, AMBIENT, AUTO und manuelle Priorität |
-| `configuration` | Validierte Konfiguration, versionierter CRC-Blob, eigener NVS-Namensraum |
-| `led_driver` | WS2812/GRB über Espressifs SPI-Treiber mit DMA |
-| `diagnostics` | Autorisierte Statusabfrage und manuelle Betriebsbefehle |
-| `main` | Ein Eigentümer für Modi/Konfiguration, 20-ms-Ausgabeschleife |
+| `ambilight_receiver` | Wi-Fi, reconnect, UDP, HMAC, ordering/freshness and a one-frame queue |
+| `color_engine` | U-shaped mapping, corner interpolation, time-based smoothing, gamma, brightness and estimated current limiting |
+| `mode_manager` | OFF, AMBILIGHT, AMBIENT, AUTO and manual priority |
+| `configuration` | Validated settings, versioned CRC blob and a dedicated NVS namespace |
+| `led_driver` | WS2812/GRB through Espressif's SPI driver with DMA |
+| `diagnostics` | Authenticated status requests and manual commands |
+| `main` | Single owner for modes/settings and a 20-ms output loop |
 
-SPI2 ist vollständig für den LED-Strip reserviert. Der Treiber benötigt nur
-die LED-Datenleitung; keine separate Taktleitung am Strip. DMA vermeidet die
-für klassischen ESP32 beschriebene RMT-Interruptlast bei gleichzeitigem WLAN.
-GPIO wird erst nach erfolgreicher Konfigurationsprüfung und explizitem
-`output_enabled` initialisiert. Vorgabe: gesperrt, GPIO −1, null LEDs.
+SPI2 is reserved entirely for the LED strip. Only its data line is needed; the
+strip does not need a separate clock wire. DMA avoids the classic ESP32's
+RMT interrupt load when Wi-Fi is active. GPIO initialization requires validated
+configuration and explicit `output_enabled`. Defaults: disabled, GPIO −1, zero LEDs.
 
-Treiberinitialisierung/erste Schwarz-Ausgabe müssen funktionieren, sonst wird
-der Treiber freigegeben. Bei späterem Ausgabefehler wird Schwarz versucht und
-der Treiber gestoppt; Netzwerk/Diagnose bleiben aktiv. Ein unterbrochenes
-Datensignal kann bereits gespeicherte LED-Farben allerdings nicht zuverlässig
-löschen. Der Software-AUS-Zustand ist keine elektrische Trennung.
+Initialization and the first black output must succeed; otherwise the driver
+is released. A later output error triggers a best-effort black output and stops
+the driver while networking/diagnostics remain active. A broken data connection
+cannot reliably clear colors already latched by LEDs. Software OFF is not an
+electrical power disconnect.
 
-## Lokal bauen
+## Build locally
 
-Voraussetzung: offizielles ESP-IDF 5.5.6 inklusive ESP32-Werkzeugen. Bei einer
-Installation unter dem ignorierten `.local/` lautet der Build-Aufruf:
+Install official ESP-IDF 5.5.6 with the ESP32 tools. If installed under the
+ignored `.local/` directory, use:
 
 ```sh
 export IDF_TOOLS_PATH="$PWD/.local/espressif"
@@ -40,83 +39,81 @@ export IDF_TOOLS_PATH="$PWD/.local/espressif"
 idf.py -C firmware build
 ```
 
-Ein frischer Checkout verwendet eine normale Installation dieser SDK-Version.
-`sdkconfig.defaults` wählt ESP32/4-MB-Flash. Tatsächliche Modulvariante,
-Flashgröße und Platinenbelegung sind **vor einem späteren Flash** zu bestätigen.
-Die generierten `sdkconfig`, Builddateien, SDKs und Binärdateien sind ignoriert.
-Keine Flash- oder Serial-Monitor-Kommandos gehören zur automatisierten Prüfung.
+A fresh checkout can also use a normal installation of this SDK version.
+`sdkconfig.defaults` selects ESP32/4-MB flash. Confirm the actual module,
+flash capacity and board pinout **before flashing**. Generated `sdkconfig`,
+build files, SDKs and binaries are ignored. Automated checks do not flash or
+open a serial monitor.
 
-## Private Konfiguration
+## Private configuration
 
 ```sh
 python3 tools/configure.py --init
-# .local/ambilight-config.json lokal bearbeiten
+# Edit .local/ambilight-config.json locally.
 python3 tools/configure.py
-# Danach erneut bauen; weiterhin nicht flashen.
+# Rebuild afterward; do not flash before hardware review.
 ```
 
-`--init` erzeugt einen zufälligen UDP-Schlüssel, API-Token und eine Profil-ID,
-überschreibt keine vorhandenen Zugangsdaten und lässt Sender/LEDs ausgeschaltet.
-WLAN-Zugangsdaten gehören ausschließlich in diese lokale Datei, nicht in Git
-oder den Chat. `configure.py` erzeugt `main/private_config.h` (ebenfalls ignoriert).
-Ein CMake-Reconfigure ist nötig, wenn der Header nach dem ersten Build neu
-hinzukommt: `idf.py -C firmware reconfigure build`.
+`--init` creates a random UDP key, API token and profile ID, preserves existing
+credentials and leaves sender/LED output disabled. Keep Wi-Fi credentials in
+this local file, never in Git or chat. `configure.py` generates
+`main/private_config.h`, also ignored. If the header is added after the first
+build, reconfigure CMake with `idf.py -C firmware reconfigure build`.
 
-Einzutragen sind WLAN-SSID/Passwort, IPv4 des TV, später IPv4 des ESP, tatsächliche
-LED-Zahlen links/oben/rechts, geprüfter Daten-GPIO, Strombudget und Helligkeitscap.
-Alle drei Seiten müssen bei einer nichtleeren Belegung vorhanden sein. Gesamtzahl
-3–600; die Grenze ist eine Softwaregrenze, keine Freigabe für die Stromversorgung.
-Es gibt keine fest eingebaute Gesamtzahl für den geplanten Rahmen.
+Set the Wi-Fi SSID/password, TV IPv4 address, later the ESP IPv4 address, actual
+LED counts for left/top/right, verified data GPIO, current budget and brightness
+cap. A nonempty layout must include all three sides. The total can be 3–600;
+this is a software limit, not a power-supply rating. No fixed frame LED count
+is built into the program.
 
-Das Mapping zählt vom unteren linken Bildrand aufwärts, dann oben und rechts
-hinunter. `start_offset` bezeichnet den physischen LED-Index dieses Anfangs.
-`reverse` kehrt die physische Laufrichtung um. Farben werden in den jeweiligen
-Seitenlängen interpoliert, Ecken überblendet, unten nicht verbunden. Bestimmung
-beim ersten freigegebenen Test mit wenigen, schwach leuchtenden Farbpunkten.
+Mapping runs from the bottom left upward, across the top and down the right,
+looking at the screen from the front. `start_offset` identifies the physical
+LED index at that starting point; `reverse` reverses the physical direction.
+Interpolation respects section lengths and blends corners without bridging
+the unlit bottom. Establish direction with a few dim test points.
 
-`gamma_milli=2200` bedeutet `pow(channel/255, 2.2)`. Glättung ist eine zeitbasierte
-Exponentialfunktion mit `smoothing_ms=150`. Nach OFF wird sie zurückgesetzt.
-Helligkeit ist das Minimum aus manueller Helligkeit, lokalem Cap und optionalem
-TV-Paketwert. Der TV kann den lokalen Cap nicht erhöhen.
+`gamma_milli=2200` means `pow(channel/255, 2.2)`. Smoothing is a time-based
+exponential function with `smoothing_ms=150`; OFF resets it. Brightness is the
+minimum of the manual setting, local cap and optional TV packet value. The TV
+cannot raise the local cap.
 
-`current_limit_ma` schätzt Last aus RGB-Ausgabe, konfigurierbaren 60 mA pro
-weißer LED und 1 mA Ruhebedarf je LED, auch bei OFF. Reale Varianten können abweichen.
-Bei zu kleinem Budget bleibt der Ruhebedarf physikalisch bestehen. Diese
-Schätzung ersetzt weder geeignetes Netzteil noch Sicherung/Leitungsprüfung.
-Die Vorgabe 500 mA ist kein zugesichertes Netzteil- oder Verdrahtungsrating.
+`current_limit_ma` estimates load from RGB output, configurable 60 mA per white
+LED and 1 mA idle per LED, including OFF. Actual variants can differ. Idle load
+still physically exists when the budget is too low. This estimate replaces
+neither a suitable supply nor fuse/wiring checks. The 500-mA default is not a
+guaranteed supply or wiring rating.
 
-## Betriebsarten und Speicherung
+## Modes and persistence
 
-| Gewählt | Verhalten |
+| Selected mode | Behavior |
 | --- | --- |
-| OFF | Sofort Schwarz; WLAN/HTTP bleiben erreichbar, UDP kann OFF nicht aufheben |
-| AMBILIGHT | Aktueller TV-Frame; nach `timeout_ms` Schwarz |
-| AMBIENT | Gespeicherte statische RGB-Farbe, unabhängig vom TV |
-| AUTO | Gültiger Stream → Ambilight; Timeout → gespeichertes Ambient oder OFF |
+| OFF | Immediate black; Wi-Fi/HTTP stay reachable and UDP cannot override OFF |
+| AMBILIGHT | Current TV colors; black after `timeout_ms` without data |
+| AMBIENT | Saved static RGB color, independent of the TV |
+| AUTO | Valid stream → Ambilight; timeout → saved ambient state or OFF |
 
-Manuelle Modi OFF und AMBIENT haben Vorrang vor dem Stream. Für erneutes
-automatisches Umschalten wird AUTO ausdrücklich gesetzt. AMBIENT speichert
-den eingeschalteten Ambient-Zustand, OFF speichert ihn als aus. Ein RGB-Befehl
-ändert die gespeicherte Ambient-Farbe; ohne Moduswechsel bleibt OFF vorrangig.
+Manual OFF and AMBIENT override the stream. Explicitly select AUTO to resume
+automatic switching. AMBIENT saves the ambient state as on; OFF saves it as off.
+An RGB command changes the saved ambient color, but OFF retains priority until
+the mode is changed.
 
-Manuelle Änderungen werden vor ihrer Anwendung in NVS gespeichert. Frames
-werden nicht gespeichert, um Flash-Schreiblast zu vermeiden. Bei NVS-Fehler
-bleibt die bisherige Einstellung aktiv; `/status.last_error` meldet den Fehler.
-Ein Start mit ungültigem NVS-Inhalt sperrt die LED-Ausgabe. Kein automatisches
-Löschen von NVS oder fremden Namensräumen. Eine geänderte private `profile_id`
-ersetzt beim nächsten Start die bisherigen Einstellungen durch die neuen
-Compile-Vorgaben. Bei Netzwerk-/Pin-/Layoutänderungen diese ID neu wählen.
-Zugangsdaten sind im Prototyp unverschlüsselt in privatem Image/NVS enthalten;
-Images und private Header dürfen nicht veröffentlicht werden.
+Manual changes are saved to NVS before being applied. Frames are never stored,
+avoiding repeated flash writes. On an NVS write failure the previous setting
+remains active; `/status.last_error` reports the failure. Invalid NVS content at
+startup disables LED output. No automatic NVS erase or changes to unrelated
+namespaces are performed. A changed private `profile_id` replaces previous
+settings with compiled defaults on the next startup. Choose a new ID when
+changing network/pin/layout settings. Prototype credentials are unencrypted
+inside private images/NVS; never publish those images or generated headers.
 
-## Diagnose und Bedienung
+## Diagnostics and control
 
-ESP-HTTP-Port 8080: `GET /status`, `POST /command`. Beide brauchen
-`Authorization: Bearer <privates Token>`; keine Passwörter/Schlüssel im Status.
-Nur in einem vertrauenswürdigen lokalen WLAN verwenden: HTTP ist unverschlüsselt.
-Kein Portforwarding. WLAN-Station erwartet mindestens WPA2, kein offenes WLAN.
+ESP HTTP port 8080 provides `GET /status` and `POST /command`. Both require
+`Authorization: Bearer <private token>`. Status contains no passwords/keys.
+Use only on a trusted LAN: HTTP is unencrypted. Do not forward this port.
+The Wi-Fi station requires at least WPA2; open networks are not supported.
 
-Beispiele nach Freigabe und Inbetriebnahme:
+After hardware review and commissioning:
 
 ```sh
 python3 tools/controller.py status
@@ -125,28 +122,27 @@ python3 tools/controller.py AUTO
 python3 tools/controller.py OFF
 ```
 
-`/command` akzeptiert ausschließlich `mode`, `brightness` und/oder `ambient`.
-202 bestätigt die Aufnahme in die begrenzte Befehlsqueue. Status danach prüfen;
-keine hochfrequenten Schreibbefehle senden. Netzwerk, GPIO und Freigabe der
-LED-Ausgabe lassen sich darüber nicht ändern. Dieselbe Befehlsstruktur ist der
-vorgesehene Einstieg für den späteren Zigbee-Adapter.
+`/command` accepts only `mode`, `brightness` and/or `ambient`. HTTP 202 confirms
+entry into the bounded command queue. Check status afterward and avoid frequent
+writes. This endpoint cannot change network settings, GPIO or output enable.
+The same command structure is the intended entry point for a future Zigbee adapter.
 
-Status enthält Empfangszähler, ungültige/alte Pakete, WLAN-Zustand, freie/minimale
-Heapgröße, Modus, LED-Treiberzustand und geschätzte Last. LED-Treiberzustand
-bestätigt keinen tatsächlich angeschlossenen oder sichtbaren Strip.
+Status reports receive counters, invalid/stale packets, Wi-Fi state, free/minimum
+heap, mode, LED driver state and estimated current. Driver state does not prove
+that a physical strip is attached or visibly responding.
 
-## Nachweise und noch offene Tests
+## Evidence and remaining tests
 
-`bash test/run_all.sh` prüft portable Produktionsmodule unter ASan/UBSan,
-die NVS-Anbindung gegen einen Fehler injizierenden Speicherstub und die
-TV-Senderkette über echtes UDP-Loopback. Details: [Testanleitung](../test/README.md).
-WLAN-Funk, echtes NVS über Neustart, GPIO-Timing und LEDs sind noch ungeprüft.
-Hardware- und TV-Freigaben: [Testplan](../docs/esp32-hardware-test.txt).
+`bash test/run_all.sh` checks portable production modules under ASan/UBSan,
+the NVS adapter against a failure-injecting memory stub and the TV sender chain
+over actual UDP loopback. See the [test guide](../test/README.md). Actual radio
+reconnect, NVS across physical restart, GPIO timing and LEDs remain untested.
+Hardware/TV checks: [test plan](../docs/esp32-hardware-test.txt).
 
-Für ESP32-C6 sind die portablen Teile wiederverwendbar. Pins, SPI-Treiber,
-SDK-Version und Funkkoexistenz müssen separat geprüft werden. Es gibt noch
-keinen C6-Build und keine implementierte Zigbee-/Hue-Anbindung.
+Portable components can be reused for ESP32-C6. Pins, SPI driver, SDK version
+and radio coexistence require separate validation. No C6 build or Zigbee/Hue
+integration has been implemented.
 
-Quellen für die Treiber-/SDK-Wahl:
+Driver/SDK sources:
 [ESP-IDF 5.5.6](https://github.com/espressif/esp-idf/releases/tag/v5.5.6),
 [Espressif LED Strip 3.1.1](https://components.espressif.com/components/espressif/led_strip/versions/3.1.1/readme).

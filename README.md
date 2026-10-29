@@ -2,37 +2,37 @@
 
 **Native TV colors. Local light.**
 
-Experimenteller Ambilight-Prototyp für Samsung-TVs mit **Tizen 4.0** und einen
-**ESP-WROOM-32** mit WS2812B-LEDs. Die „4“ steht für „for“ und Tizen 4.
+An experimental Ambilight prototype for Samsung TVs running **Tizen 4.0** and
+an **ESP-WROOM-32** driving WS2812B LEDs. The “4” means both “for” and Tizen 4.
 
 ```text
-Interne TV-App → Capture auf dem TV → RGB-Randzonen → WLAN/UDP → ESP32 → LEDs
+Internal TV app → TV-side capture → RGB edge zones → Wi-Fi/UDP → ESP32 → LEDs
 ```
 
-Die Bildauswertung läuft auf dem Fernseher. Übertragen werden ausschließlich
-gemittelte Farben, keine Videoframes oder JPEGs. Im Betrieb ist kein dauerhafter
-PC-Dienst vorgesehen. Kein HDMI-Grabber, externer Streaming-Client oder Cloud-Dienst.
+The TV processes its own image. Only averaged colors are transmitted, never
+video frames or JPEGs. The intended operating chain needs no permanent PC
+service, HDMI capture device, external streaming client or cloud service.
 
-## Projektstand
+## Project status
 
-| Teil | Stand |
+| Component | Status |
 | --- | --- |
-| Bestehender Capture-Prototyp | Begrenzte Einzeltests auf UE65NU7179, Tizen 4.0 / ARMv7, Firmware 1360 erfolgreich |
-| Interne Apps | Wechselnde Farben bei begrenzten Netflix-/Prime-Video-/Disney+-Tests; keine allgemeine Codec-/HDR-Garantie |
-| Neuer TV-Sender | Implementiert, lokal unter Node 4.4.3 und über UDP-Loopback geprüft; Live-Dauerbetrieb offen |
-| ESP32-Firmware | ESP-IDF 5.5.6 / led_strip 3.1.1, für klassischen ESP32 gebaut |
-| Sichtbarer Ende-zu-Ende-Test | Noch offen; kein Nachweis einer fertigen TV-zu-LED-Lösung |
-| Autostart / ESP32-C6 / Zigbee / Hue | Spätere Schritte, nicht implementiert oder bestätigt |
+| Existing capture prototype | Successful bounded single-frame tests on UE65NU7179, Tizen 4.0 / ARMv7, firmware 1360 |
+| Internal streaming apps | Changing colors in limited Netflix, Prime Video and Disney+ tests; no universal codec/HDR guarantee |
+| New TV sender | Implemented and tested locally under Node 4.4.3 and over UDP loopback; sustained live operation remains unverified |
+| ESP32 firmware | Built for the classic ESP32 using ESP-IDF 5.5.6 and led_strip 3.1.1 |
+| Visible end-to-end test | Pending; a complete TV-to-LED solution has not yet been demonstrated |
+| Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
 
-Standardmäßig bleiben TV-Sender und LED-Ausgabe deaktiviert. Diese Software
-verwendet einen vorhandenen, nicht öffentlich dokumentierten Samsung-Capture-
-Dienst; Verhalten auf anderen Modellen/Firmwareständen ist ungeprüft. Keine
-Root-Rechte, Firmwareänderungen, Systemdateiänderungen oder DRM-Umgehung.
+The TV sender and LED output are disabled by default. The software uses an
+existing Samsung capture service that is not publicly documented. Other models
+and firmware versions are untested. No root access, firmware modifications,
+system-file changes or DRM bypass are part of this project.
 
-## Lokal testen – ohne TV oder LEDs
+## Run local tests without a TV or LEDs
 
-Voraussetzungen: GCC, OpenSSL-Entwicklungsbibliothek, Python 3, Pillow und Node.
-Die Tests verwenden Loopback, synthetische Bilder und Speicherstubs.
+Requirements: GCC, OpenSSL development libraries, Python 3, Pillow and Node.
+Tests use loopback networking, synthetic images and memory stubs.
 
 ```bash
 git clone https://github.com/Marcolist/ambi4tizen.git
@@ -42,51 +42,48 @@ python3 -m venv .local/test-venv
 PATH="$PWD/.local/test-venv/bin:$PATH" bash test/run_all.sh
 ```
 
-Die Tests decken Protokoll/HMAC, fehlerhafte und alte Pakete, LED-Zuordnung,
-Eckeninterpolation, Gamma, Glättung, Modi, Timeout, Reconnect-Logik, Persistenz
-und die tatsächliche Node→UDP→C-Empfänger-Kette ab. Ein zusätzlicher Node-4.4.3-
-Lauf erfolgt, wenn dieser Runtime wie in [test/README.md](test/README.md) vorhanden
-ist. Ein übersprungener Kompatibilitätslauf wird ausdrücklich gemeldet.
+Tests cover the protocol/HMAC, malformed and stale packets, LED mapping, corner
+interpolation, gamma, smoothing, modes, timeouts, reconnect logic, persistence
+and the actual Node → UDP → C receiver chain. An additional Node 4.4.3 run is
+performed when that runtime is available as described in
+[test/README.md](test/README.md). A skipped compatibility run is reported explicitly.
 
-## 1. Werkzeuge für den TV vorbereiten
+## 1. Prepare the TV development tools
 
-Die vorhandenen Buildskripte erwarten diese lokalen Werkzeuge:
+The build scripts expect these local tools:
 
-| Werkzeug | Geprüfter Stand / Pfad |
+| Tool | Tested version / expected path |
 | --- | --- |
 | Samsung SDB | 4.2.36, `discovery/tools/sdb-sdk/tools/sdb` |
-| .NET SDK zum Signieren | 6.0.428, `.local/dotnet/dotnet` |
-| SDK-Signiertask | `Tizen.NET.Sdk` 1.1.9, `tools/WidgetSigner.proj` |
+| .NET SDK for signing | 6.0.428, `.local/dotnet/dotnet` |
+| SDK signing task | `Tizen.NET.Sdk` 1.1.9, `tools/WidgetSigner.proj` |
 
-SDKs und Zertifikate sind nicht Teil des Repositorys; die Skripte installieren
-sie nicht automatisch. Tizen-Signierwerkzeuge und zulässige Zertifikate müssen
-lokal eingerichtet sein. Der Signiertask kompiliert keine .NET-App für den TV.
-Ein akzeptiertes Entwicklungspaket auf einem Gerät ist keine Garantie für andere
-Geräte oder eine App-Store-Zulassung.
+SDKs and certificates are not included or installed automatically. Configure
+Tizen signing tools and appropriate certificates locally. The signing task does
+not compile a .NET application for the TV. Acceptance of a development package
+on one device does not guarantee acceptance on other devices or in an app store.
 
-TV und Rechner müssen im selben erreichbaren LAN sein. Entwicklermodus und
-Rechner-IP müssen am TV konfiguriert sein. Bei einer erstmaligen Einrichtung:
-Apps/App-Einstellungen öffnen, `12345` eingeben, Entwicklermodus aktivieren,
-Rechner-IP eintragen und den vorgesehenen Neustart ausführen. Menüpositionen
-können abweichen. Siehe
+The TV and computer must be reachable on the same LAN. Developer Mode and the
+computer's IP address must be configured on the TV. For initial setup, open
+Apps/App Settings, enter `12345`, enable Developer Mode, enter the computer's
+IP address and perform the requested restart. Menu locations can vary. See
 [Samsung – TV Device](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html).
-Diese Anleitung verlangt kein Firmwareupdate.
+This installation procedure does not require a firmware update.
 
-## 2. Ziel-TV festlegen
+## 2. Select and verify the target TV
 
-Nur für ein Gerät ausführen, das du kontrollierst. Befehle gelten ab hier im
-Repository-Stamm. Bei bestehender Konfiguration keine Dateien löschen oder
-Zugangsdaten neu erzeugen.
+Use only a device you control. Run the following commands from the repository
+root. If configuration already exists, do not delete it or regenerate credentials.
 
 ```bash
-read -r -p "IPv4-Adresse des vorgesehenen TV: " TV_IP
-read -r -p "IPv4-Adresse dieses Rechners im LAN: " DEVELOPER_IP
+read -r -p "Target TV IPv4 address: " TV_IP
+read -r -p "This computer's LAN IPv4 address: " DEVELOPER_IP
 python3 poc/configure_probe.py --tv "$TV_IP" --host "$DEVELOPER_IP"
 ```
 
-Das Werkzeug liest die TV-Identität und speichert sie in `.local/target.json`.
-Es überschreibt keine Konfiguration und ändert keine TV-Einstellung. Namen,
-Modell und MAC lokal prüfen, bevor eine App installiert wird. Sie bleiben privat.
+The tool reads the TV identity and saves it in `.local/target.json`. It does not
+overwrite configuration or change TV settings. Verify the device name, model
+and MAC locally before installing an app. These values remain private.
 
 ```bash
 TV_IP="$(python3 -c 'import json; print(json.load(open(".local/target.json"))["host"])')"
@@ -95,96 +92,97 @@ SDB_BIN="discovery/tools/sdb-sdk/tools/sdb"
 "$SDB_BIN" -s "${TV_IP}:26101" get-state
 ```
 
-Erwartet wird `device`. Bei falscher Identität oder Verbindungsfehler anhalten;
-keine fremden Geräte ausprobieren und keine Schutzprüfung entfernen.
+The expected state is `device`. Stop on an identity mismatch or connection
+failure. Do not try unrelated devices or remove the identity checks.
 
-## 3. Privaten Sender konfigurieren
+## 3. Configure the private sender settings
 
-Nur beim ersten Einrichten:
+Run once during initial setup:
 
 ```bash
 python3 tools/configure.py --init
 ```
 
-Die erzeugte `.local/ambilight-config.json` enthält zufälligen UDP-Schlüssel,
-API-Token und Profil-ID. Sie bleibt außerhalb von Git. **Keine echten Adressen,
-MACs, WLAN-Zugangsdaten, Schlüssel oder generierten Pakete veröffentlichen.**
+The generated `.local/ambilight-config.json` contains a random UDP key, API token
+and profile ID. It is excluded from Git. **Do not publish real addresses, MACs,
+Wi-Fi credentials, keys or generated packages.**
 
-Für eine reine Installation ohne Capture zunächst `firmware.source_ip` auf
-die TV-Adresse aus `.local/target.json` setzen. `sender.enabled=false` und
-`firmware.output_enabled=false` beibehalten. So ist das Paket installierbar,
-führt aber keinen Capture aus und öffnet keinen Sender-Diagnoseport.
+For an installation without capture, first set `firmware.source_ip` to the TV
+address in `.local/target.json`. Keep `sender.enabled=false` and
+`firmware.output_enabled=false`. This produces an installable package that does
+not capture images or open the sender diagnostics port.
 
-Vor einem aktiven Test zusätzlich lokal eintragen:
+Before an active test, also configure these values locally:
 
-| Wert | Bedeutung |
+| Setting | Meaning |
 | --- | --- |
-| `firmware.ssid`, `firmware.password` | WLAN für den ESP |
-| `sender.esp_ip` | Tatsächliche ESP-IPv4, kein Platzhalter/Broadcast |
-| `sender.developer_ip` | Rechner-IP für Status/Stop |
-| `firmware.udp_port`, `sender.port` | Gleicher Port, Vorgabe 19446 |
-| `sender.zones` | 6, 12, 18 oder 24; Vorgabe 12 |
-| `sender.resolution` | Zunächst `480x270` |
-| `sender.interval_ms` | Zunächst `1000` |
-| `sender.duration_ms` | Zunächst `30000` |
+| `firmware.ssid`, `firmware.password` | Wi-Fi credentials for the ESP |
+| `sender.esp_ip` | Actual ESP IPv4 address, not a placeholder or broadcast address |
+| `sender.developer_ip` | Computer IP allowed to request status/stop |
+| `firmware.udp_port`, `sender.port` | Matching UDP port; default 19446 |
+| `sender.zones` | 6, 12, 18 or 24; default 12 |
+| `sender.resolution` | Initially `480x270` |
+| `sender.interval_ms` | Initially `1000` |
+| `sender.duration_ms` | Initially `30000` |
 
-`sender.enabled=true` erst vor einem bewusst gestarteten Test setzen.
-**TV-Konfigurationsänderungen benötigen immer einen neuen Build und eine erneute
-Installation.** Der TV liest die JSON-Datei auf dem Rechner nicht laufend.
-ESP-Konfiguration und sichere Verdrahtung sind separate Schritte:
-[Firmware-Anleitung](firmware/README.md), [Hardware-Prüfliste](docs/esp32-hardware-test.txt).
+Set `sender.enabled=true` only before a deliberate active test. **Every TV
+configuration change requires rebuilding and reinstalling the package.** The
+TV does not continuously read the JSON file on the computer. ESP configuration
+and verified wiring are separate steps: [firmware guide](firmware/README.md),
+[hardware checklist](docs/esp32-hardware-test.txt).
 
-## 4. TV-App bauen und installieren
+## 4. Build and install the TV app
 
 ```bash
 python3 tools/build_sender.py
-python3 poc/deploy_web_probe.py install --sender --context "Installation ohne Capture-Start"
+python3 poc/deploy_web_probe.py install --sender --context "Installation without capture startup"
 ```
 
-Der Builder signiert `poc/build/ambilight-sender.wgt`. Der Installer prüft
-Geräteidentität und Entwicklermodus und installiert das eigene Senderpaket.
-`install` startet keinen Capture-Lauf. Die optionale Diagnose-App ist separat.
+The builder signs `poc/build/ambilight-sender.wgt`. The installer checks the
+identity and Developer Mode, then installs this project's sender package.
+`install` does not start a capture run. The optional diagnostic app is separate.
 
-Kennungen und Kontrolle:
+Application identifiers:
 
-| Kennung | Aufgabe |
+| Identifier | Purpose |
 | --- | --- |
-| `ambiSend40` | Paket |
-| `ambiSend40.Start` | Start-App „Ambilight Sender“ |
-| `ambiSend40.Service` | Hintergrunddienst |
+| `ambiSend40` | Package |
+| `ambiSend40.Start` | “Ambilight Sender” launcher app |
+| `ambiSend40.Service` | Background service |
 
 ```bash
 "$SDB_BIN" -s "${TV_IP}:26101" shell 0 applist
 ```
 
-`install completed` im Protokoll und beide Anwendungskennungen im Inventar
-prüfen. Private Installationsprotokolle liegen unter `poc/runtime/`.
-Die internen Paketkennungen bleiben für Update-Kompatibilität unverändert.
+Check for `install completed` in the installation log and both application IDs
+in the inventory. Private installation logs are stored under `poc/runtime/`.
+Internal package identifiers remain unchanged for update compatibility.
 
-## 5. Kurzer Test: Start, Status und Stopp
+## 5. Run a short test: start, status and stop
 
-Erst mit vorbereitetem Empfänger und geprüftem Aufbau. Klein beginnen:
-30 Sekunden, 12 Zonen, 480×270 und Zielintervall 1 Sekunde.
+Prepare the receiver and verify the hardware first. Start small: 30 seconds,
+12 zones, 480×270 and a target interval of one second.
 
 ```bash
-python3 poc/deploy_web_probe.py launch --sender --context "Kurzer 30-Sekunden-Test"
+python3 poc/deploy_web_probe.py launch --sender --context "Short 30-second test"
 python3 poc/deploy_web_probe.py status --sender
 python3 poc/deploy_web_probe.py stop --sender
 ```
 
-`launch` startet den Hintergrunddienst, `status` liest dessen Diagnose und
-`stop` wartet auf Abschluss/Aufräumen eines laufenden Captures. Eine lokal
-deaktivierte Konfiguration wird vom Startwerkzeug abgewiesen.
+`launch` starts the background service, `status` reads its diagnostics and `stop`
+waits for an active capture to finish and clean up. The launcher rejects a
+locally disabled sender configuration.
 
-Alternativ „Ambilight Sender“ im Apps-Menü öffnen. Die UI startet den Dienst
-und blendet sich aus. Ein UI-Start beweist noch keine Bildaufnahme oder LED-Reaktion.
+Alternatively, open “Ambilight Sender” in the TV's Apps menu. Its UI starts the
+service and hides itself. A successful UI launch does not establish capture
+success or a visible LED response.
 
-Nach dem Testfenster bleiben fünf Sekunden zum Statuslesen, danach endet der
-Dienst. `Connection refused` ist bei beendetem oder deaktiviertem Dienst normal;
-Installationskontrolle erfolgt per `applist`. Kein Boot-Autostart ist eingerichtet.
-Bei Rucklern oder Hängern sofort stoppen; Tests erst nach Auswertung verlängern.
+After the test window, five seconds remain for reading status before the
+service exits. `Connection refused` is normal when the service has ended or is
+disabled. Verify installation using `applist`. No boot startup is configured.
+Stop immediately if playback stutters or hangs; extend tests only after review.
 
-## 6. Rückbau
+## 6. Uninstall
 
 ```bash
 python3 poc/deploy_web_probe.py stop --sender
@@ -192,32 +190,32 @@ python3 poc/deploy_web_probe.py stop --sender
 "$SDB_BIN" -s "${TV_IP}:26101" shell 0 applist
 ```
 
-Danach dürfen beide Sender-Kennungen nicht mehr im Inventar stehen. Dieser
-Rückbau ist noch nicht praktisch verifiziert. Falls der normale Uninstaller
-ablehnt, über die TV-App-Verwaltung löschen; keine Force-/Root-Methode verwenden.
-Siehe [Samsungs Fehlerhilfe](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html).
+Both sender IDs should disappear from the inventory. This uninstall procedure
+has not yet been verified in practice. If the normal uninstaller refuses,
+remove the app through the TV's app management UI; do not use force/root methods.
+See [Samsung's troubleshooting guide](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html).
 
-## Dokumentation
+## Documentation
 
-| Dokument | Inhalt |
+| Document | Contents |
 | --- | --- |
-| [TV-Sender](tv/README.md) | Capture, Profilierung und Grenzen |
-| [ESP32-Firmware](firmware/README.md) | Module, Mapping, Modi und Build |
-| [Tests und Simulator](test/README.md) | Reproduzierbare Tests ohne TV |
-| [Protokoll](protocol/README.md) | UDP-Format, Authentifizierung, Datenalter |
-| [Projektstand](docs/esp32-prototype-status.txt) | Technische Nachweise und offene Punkte |
-| [Hardwaretest](docs/esp32-hardware-test.txt) | Versorgung und Verdrahtungsprüfung |
-| [C6/Zigbee später](docs/esp32-c6-phase2.txt) | Vorbereitete Architektur und SDK-Abgleich |
-| [Capture-Diagnose](poc/README.md) | Begrenzter Basistest |
+| [TV sender](tv/README.md) | Capture, profiling and limitations |
+| [ESP32 firmware](firmware/README.md) | Modules, mapping, modes and build |
+| [Tests and simulator](test/README.md) | Reproducible tests without a TV |
+| [Protocol](protocol/README.md) | UDP format, authentication and freshness |
+| [Project status](docs/esp32-prototype-status.txt) | Technical evidence and open questions |
+| [Hardware test](docs/esp32-hardware-test.txt) | Power and wiring checks |
+| [Future C6/Zigbee support](docs/esp32-c6-phase2.txt) | Prepared architecture and SDK review |
+| [Capture diagnostic](poc/README.md) | Bounded baseline test |
 
-## Datenschutz und Lizenz
+## Privacy and license
 
-Dieses Repository enthält Quellcode, allgemeine Dokumentation und synthetische
-Tests. Geräteidentitäten, Adressen, Zugänge, Zertifikate, SDKs, Buildprodukte,
-private Untersuchungen und Wiedergabeprotokolle sind ausgeschlossen. Beispiele
-verwenden Loopback oder reservierte Dokumentationsadressen. HMAC authentifiziert
-UDP-Farbdaten, verschlüsselt sie aber nicht; Diagnose-HTTP ist unverschlüsselt.
+This repository contains source code, general documentation and synthetic tests.
+Device identities, addresses, credentials, certificates, SDKs, build products,
+private investigations and viewing logs are excluded. Examples use loopback or
+reserved documentation addresses. HMAC authenticates UDP colors but does not
+encrypt them; diagnostic HTTP is also unencrypted.
 
-Eigener Code: [MIT](LICENSE). Fremdcode behält seine eigenen Lizenzen und
-Attributionen: [Third-party notices](THIRD_PARTY_NOTICES.md).
-Ambi4Tizen ist unabhängig von Samsung und Signify/Philips Hue.
+Original project code: [MIT](LICENSE). Third-party code retains its own licenses
+and attribution: [third-party notices](THIRD_PARTY_NOTICES.md).
+Ambi4Tizen is independent of Samsung and Signify/Philips Hue.
