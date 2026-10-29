@@ -13,6 +13,23 @@ The TV processes its own image. Only averaged colors are transmitted, never
 video frames or JPEGs. The intended operating chain needs no permanent PC
 service, HDMI capture device, external streaming client or cloud service.
 
+## Risk, warranty and liability
+
+**Experimental software — use at your own risk.** Installing, configuring,
+flashing or running this project may cause unexpected behavior, interrupted
+service, data loss or damage to TVs, controllers, LED strips, power supplies
+or other connected equipment. Verify your device, wiring and power requirements
+before any hardware test.
+
+The project is supplied **as is**, with no guarantees of safety, reliability,
+compatibility or suitability for your setup. To the maximum extent permitted
+by applicable law, the authors, contributors and copyright holders accept no
+liability for damage, loss, claims or costs resulting from this project or its
+documentation. This notice does not exclude liability that cannot legally be
+excluded or restrict mandatory statutory rights.
+
+See the [MIT license](LICENSE) for the full warranty disclaimer and liability terms.
+
 ## Project status
 
 | Component | Status |
