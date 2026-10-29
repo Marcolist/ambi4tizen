@@ -8,6 +8,8 @@ Implemented:
 - HMAC/sequence/session/age checks, newest-frame queue and stream timeout.
 - Configurable LED sections/start/direction, corner interpolation, gamma,
   time-based smoothing and brightness/current estimation.
+- Adaptive border-palette transitions: up to 80-ms normal / 25-ms fast time
+  constants, broad-change heuristic, fixed AMBIENT semantics and status counters.
 - OFF/AMBILIGHT/AMBIENT/AUTO with manual priority, persistent settings and
   bounded Wi-Fi reconnect backoff.
 
@@ -37,6 +39,10 @@ Hardware validation without connected LEDs:
 - Post-update 70-second window: 70 TV-sent / 70 additional accepted frames, no
   new invalid/stale packets or sender errors, driver initialized, mode OFF and
   strip disconnected. This is a short network check, not a long-term guarantee.
+- Adaptive S3 application update retained the existing AUTO profile and full
+  brightness. In roughly 61 seconds, 190 additional packets were accepted with
+  no new invalid/stale packets or sender errors. Both 80/25-ms paths were observed
+  in diagnostics; visible LED transition quality remains untested.
 
 Earlier bounded capture-only tests on Samsung UE65NU7179/Tizen 4.0/firmware 1360
 returned changing colors during Netflix, Prime Video and Disney+ playback.

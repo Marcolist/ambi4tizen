@@ -39,6 +39,7 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | TV color plausibility | Live averaged RGB zones were compared with the visible TV image and judged plausible by the operator; physical LED color matching remains unverified |
 | New TV sender | Continuous operation tested on the TV; one 70-second post-update window delivered 70/70 frames to the S3 without new invalid/stale packets or sender errors; long-term reliability unverified |
 | Faster capture target | Experimental 250-ms target measured at about 3.83 sent frames/s in a 40-second live window; visible playback and physical LED latency need separate checks |
+| Adaptive transitions | S3 receiver deployed with up to 80-ms normal / 25-ms fast smoothing; both paths observed in live diagnostics, physical LED response unverified |
 | ESP32 firmware | Classic ESP32 and ESP32-S3 builds using ESP-IDF 5.5.6 / led_strip 3.1.1; S3 flashed, networking/NVS restart and 91-pixel driver initialization tested without connected LEDs |
 | Visible end-to-end test | Pending; a complete TV-to-LED solution has not yet been demonstrated |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
@@ -262,9 +263,12 @@ before assuming that a requested resolution was honored.
 
 These timings start at the software capture request and end before packet
 encoding/UDP transport. They do not measure visible screen-to-LED delay.
-Sampling wait and the configured 150-ms smoothing time constant add response
-time; smoothing is gradual rather than a fixed 150-ms delay. A shared video of
-the screen and strip is needed to measure the visible end-to-end response.
+Sampling wait and temporal smoothing add response time. The timing runs above
+used the earlier fixed 150-ms smoothing implementation. The adaptive receiver
+uses up to 80 ms for normal changes and 25 ms for large palette changes, capped
+by the existing configured value. These are time constants, not fixed delays.
+See [adaptive transitions](docs/adaptive-smoothing.md). A shared video of the
+screen and strip is needed to measure the visible end-to-end response.
 
 ## Continuous operation and LED preparation
 
@@ -312,6 +316,7 @@ See [Samsung's troubleshooting guide](https://developer.samsung.com/smarttv/deve
 | [Project status](docs/esp32-prototype-status.txt) | Technical evidence and open questions |
 | [Hardware test](docs/esp32-hardware-test.txt) | Power and wiring checks |
 | [Live-test preparation](docs/live-test.md) | Continuous sender and front-view bottom-right LED mapping |
+| [Adaptive transitions](docs/adaptive-smoothing.md) | Palette-change heuristic, smooth/fast response and receiver diagnostics |
 | [Future C6/Zigbee support](docs/esp32-c6-phase2.txt) | Prepared architecture and SDK review |
 | [Capture diagnostic](poc/README.md) | Bounded baseline test |
 

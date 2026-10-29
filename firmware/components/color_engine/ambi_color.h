@@ -6,6 +6,10 @@ typedef struct {
     uint64_t last_ms;
     bool initialized;
     unsigned estimated_ma;
+    ambi_frame_t previous_frame;
+    bool previous_frame_valid, fast_transition;
+    uint16_t active_smoothing_ms;
+    uint32_t scene_changes;
 } ambi_color_engine_t;
 void ambi_color_init(ambi_color_engine_t *, const ambi_config_t *);
 unsigned ambi_physical_index(const ambi_config_t *, unsigned canonical);

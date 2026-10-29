@@ -77,3 +77,9 @@ target-specific reserved GPIO exclusions are covered without touching hardware.
 The experimental 250-ms target is checked with captures shorter and longer
 than its interval: fast captures wait for the next slot; slow ones serialize
 without a backlog. Configuration values below the supported floor are rejected.
+
+Adaptive color-engine tests check smooth small updates, fast broad changes,
+localized motion/noise rejection, rearranged palettes, session/layout resets,
+sequence wrap, cadence-independent response, OFF/AMBIENT semantics and output
+limits. The cut response is checked over elapsed time, including repeated
+renders of the same frame so the speed does not revert midway through a fade.

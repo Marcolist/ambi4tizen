@@ -2,6 +2,41 @@
 #include <math.h>
 #include <string.h>
 static uint8_t byte(float v) { return (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v+0.5f); }
+/* Palette-change heuristic, not semantic video-cut detection. Keep the selected
+ * speed for the whole incoming frame, rather than reclassifying every 20 ms. */
+static uint16_t smoothing(ambi_color_engine_t *s,const ambi_config_t *c,
+    const ambi_frame_t *f,ambi_mode_t mode) {
+    unsigned ms=c->smoothing_ms;
+    if(mode!=AMBI_AMBILIGHT || !f || !ms) {
+        s->previous_frame_valid=false; s->fast_transition=false;
+        return ms;
+    }
+    const ambi_frame_t *p=&s->previous_frame;
+    bool comparable=s->previous_frame_valid && p->session==f->session &&
+        p->count==f->count && p->left==f->left && p->top==f->top && p->right==f->right;
+    if(!comparable || p->sequence!=f->sequence) {
+        bool cut=false;
+        if(comparable) {
+            unsigned total=0,changed=0;
+            for(unsigned i=0;i<f->count;i++) {
+                int delta[3]={(int)f->zones[i].r-p->zones[i].r,
+                    (int)f->zones[i].g-p->zones[i].g,(int)f->zones[i].b-p->zones[i].b};
+                unsigned maximum=0;
+                for(unsigned ch=0;ch<3;ch++) {
+                    unsigned distance=delta[ch]<0 ? -delta[ch] : delta[ch];
+                    total+=distance; if(distance>maximum)maximum=distance;
+                }
+                if(maximum>=64)changed++;
+            }
+            cut=total>=48u*3*f->count && changed*100>=60u*f->count;
+        }
+        s->fast_transition=cut;
+        if(cut)s->scene_changes++;
+        s->previous_frame=*f; s->previous_frame_valid=true;
+    }
+    unsigned cap=s->fast_transition ? 25 : 80;
+    return ms<cap ? ms : cap;
+}
 void ambi_color_init(ambi_color_engine_t *s, const ambi_config_t *c) {
     memset(s,0,sizeof(*s));
     for (unsigned i=0;i<256;i++) s->gamma[i]=byte(255*powf(i/255.0f,c->gamma_milli/1000.0f));
@@ -32,10 +67,12 @@ void ambi_color_render(ambi_color_engine_t *s,const ambi_config_t *c,const ambi_
     unsigned n=ambi_led_count(c);
     if(mode==AMBI_OFF || (mode==AMBI_AMBILIGHT && !f)) {
         memset(out,0,n*sizeof(*out)); memset(s->smoothed,0,sizeof(s->smoothed));
-        s->initialized=false; s->last_ms=now; s->estimated_ma=n; return;
+        s->initialized=false; s->last_ms=now; s->estimated_ma=n;
+        s->previous_frame_valid=false; s->fast_transition=false; s->active_smoothing_ms=0; return;
     }
-    float alpha=(!s->initialized || !c->smoothing_ms) ? 1.0f :
-        1-expf(-(float)(now-s->last_ms)/c->smoothing_ms);
+    s->active_smoothing_ms=smoothing(s,c,f,mode);
+    float alpha=(!s->initialized || !s->active_smoothing_ms) ? 1.0f :
+        1-expf(-(float)(now-s->last_ms)/s->active_smoothing_ms);
     unsigned brightness=c->brightness < c->brightness_cap ? c->brightness : c->brightness_cap;
     if(mode==AMBI_AMBILIGHT && (f->flags&AMBI_FLAG_BRIGHTNESS) && f->brightness<brightness) brightness=f->brightness;
     uint32_t sum=0;

@@ -5,6 +5,9 @@ typedef struct {
     ambi_mode_t requested,effective;
     bool wifi,led_ready,stream;
     unsigned leds,estimated_ma,free_heap,min_heap;
+    unsigned smoothing_ms;
+    uint32_t scene_changes;
+    bool fast_transition;
     uint64_t uptime_ms;
     int last_error;
     ambi_rx_stats_t rx;

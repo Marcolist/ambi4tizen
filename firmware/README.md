@@ -85,8 +85,13 @@ LED index at that starting point; `reverse` reverses the physical direction.
 Interpolation respects section lengths and blends corners without bridging
 the unlit bottom. Establish direction with a few dim test points.
 
-`gamma_milli=2200` means `pow(channel/255, 2.2)`. Smoothing is a time-based
-exponential function with `smoothing_ms=150`; OFF resets it. Brightness is the
+`gamma_milli=2200` means `pow(channel/255, 2.2)`. Temporal smoothing is adaptive:
+normal changes use up to 80 ms, broad large palette changes up to 25 ms.
+The existing `smoothing_ms` is an upper bound; zero disables smoothing, while
+AMBIENT keeps its configured time constant. OFF resets the filter and palette
+reference. This is a border-color heuristic, not semantic scene recognition.
+See [adaptive transitions](../docs/adaptive-smoothing.md) for thresholds,
+diagnostics and limits. Brightness is the
 minimum of the manual setting, local cap and optional TV packet value. The TV
 cannot raise the local cap.
 
@@ -145,6 +150,8 @@ The same command structure is the intended entry point for a future Zigbee adapt
 Status reports receive counters, invalid/stale packets, Wi-Fi state, free/minimum
 heap, mode, LED driver state and estimated current. Driver state does not prove
 that a physical strip is attached or visibly responding.
+The adaptive firmware also reports `color_algorithm`, selected `smoothing_ms`,
+`fast_transition` and the `scene_changes` count since boot.
 
 ## Evidence and remaining tests
 

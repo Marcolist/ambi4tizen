@@ -59,6 +59,8 @@ void app_main(void) {
             ambi_status_t status={.requested=mode.requested,.effective=effective,.wifi=ambi_wifi_connected(),.led_ready=ambi_led_ready(),
                 .leds=ambi_led_count(&config),.estimated_ma=colors.estimated_ma,.free_heap=esp_get_free_heap_size(),.min_heap=esp_get_minimum_free_heap_size(),
                 .uptime_ms=now,.stream=have_frame && now-latest.received_ms<=config.timeout_ms,.last_error=last_error};
+            status.smoothing_ms=colors.active_smoothing_ms;status.fast_transition=colors.fast_transition;
+            status.scene_changes=colors.scene_changes;
             ambi_receiver_stats(&status.rx); ambi_diagnostics_publish(&status); last_report=now;
             if(now%10000<1000)ESP_LOGI(TAG,"mode=%u heap=%u accepted=%lu stale=%lu led=%u",effective,status.free_heap,(unsigned long)status.rx.accepted,(unsigned long)status.rx.stale,status.led_ready);
         }
