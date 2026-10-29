@@ -77,6 +77,12 @@ HTTP 18793 accepts only the private developer IP and bearer token.
 `GET /status` returns aggregate timings for broker, file read, JPEG decode,
 zone processing, optional hashing and cleanup, plus initial/peak/latest RSS
 and heap. `continuous`, `running` and `stop_reason` describe sender state.
+`last_sent` contains only the most recently sent packet's averaged RGB zones,
+section counts, sequence, encoding-time age and current `capture_age_ms`.
+It is null before the first successful send and is replaced rather than queued.
+Use its current age before interpreting colors as live. A successful UDP send
+does not prove reception or physical LED output. No JPEG or image pixels are
+exposed by this endpoint; access retains the same developer-IP/token checks.
 `POST /stop` waits for capture completion and cleanup. In a bounded run, five
 seconds remain after the test window before process exit. In continuous mode
 there is no expiry timer; error stops still apply and diagnostics remain

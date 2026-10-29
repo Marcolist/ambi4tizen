@@ -108,6 +108,11 @@ invalid/stale packets or sender errors. The 91-pixel driver remained initialized
 and saved OFF remained active. The strip was disconnected throughout: this
 verifies the live network/driver path, not visible LED output or long-term uptime.
 
+The sender's authenticated `last_sent` diagnostic was also checked against the
+visible TV image. The operator judged the sampled palette plausible. This is
+a qualitative TV-capture check; physical LED color order, placement and output
+have not been confirmed by that comparison.
+
 For a live check compare TV sent counts with ESP accepted counts beyond the old
 30-second window, inspect errors and memory, and confirm playback separately.
 Leave diagnostics private. Stop the sender if playback becomes unstable.

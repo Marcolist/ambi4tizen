@@ -5,9 +5,9 @@ exports.create = function (config, dependencies) {
     var socket = d.socket || require('dgram').createSocket('udp4');
     var later = d.setTimeout || setTimeout, cancel = d.clearTimeout || clearTimeout;
     var session = (d.randomBytes || require('crypto').randomBytes)(8), sequence = 0;
-    var key = new Buffer(config.key_hex || '', 'hex'), running = false, inFlight = false, timer, deadline;
+    var key = new Buffer(config.key_hex || '', 'hex'), running = false, inFlight = false, timer, deadline, lastCaptureStart;
     var metrics = { captures: 0, sent: 0, errors: 0, consecutive_errors: 0, running: false,
-        continuous: config.duration_ms === 0, stop_reason: null, profiles: {}, memory: {} };
+        continuous: config.duration_ms === 0, stop_reason: null, last_sent: null, profiles: {}, memory: {} };
     function validate() {
         zones.layout(config.zones);
         if (!/^([0-9a-f]{64})$/i.test(config.key_hex || '') || !key.some(function (v) { return v !== 0; })) throw new Error('key');
@@ -57,7 +57,14 @@ exports.create = function (config, dependencies) {
                     age_ms: age, sections: result.colors.sections, colors: result.colors.zones_rgb, brightness: config.brightness }, key);
                 sequence = (sequence + 1) >>> 0;
                 socket.send(packet, 0, packet.length, config.port, config.esp_ip, function (err) {
-                    if (err) { metrics.errors++; metrics.consecutive_errors++; } else { metrics.sent++; metrics.consecutive_errors = 0; }
+                    if (err) { metrics.errors++; metrics.consecutive_errors++; } else {
+                        metrics.sent++; metrics.consecutive_errors = 0;
+                        var colors = [], count = packet.readUInt16BE(6);
+                        for (var i = 0; i < count; i++) colors.push([packet[32 + 3*i], packet[33 + 3*i], packet[34 + 3*i]]);
+                        metrics.last_sent = { sequence: packet.readUInt32BE(16), age_ms: packet.readUInt16BE(24),
+                            sections: [packet[27], packet[28], packet[29]], zones_rgb: colors };
+                        lastCaptureStart = result.started_ms;
+                    }
                     if (metrics.consecutive_errors >= 3) stop('send_errors');
                     schedule();
                 });
@@ -72,6 +79,10 @@ exports.create = function (config, dependencies) {
         stop: stop,
         close: function () { stop(); socket.close(); },
         busy: function () { return inFlight; },
-        metrics: function () { return JSON.parse(JSON.stringify(metrics)); }
+        metrics: function () {
+            var snapshot = JSON.parse(JSON.stringify(metrics));
+            if (snapshot.last_sent) snapshot.last_sent.capture_age_ms = Math.max(0, Math.ceil(clock() - lastCaptureStart));
+            return snapshot;
+        }
     };
 };

@@ -67,12 +67,19 @@ var sender = require('../tv/sender').create(config, { socket: fakeSocket, clock:
 } });
 sender.start(); assert.throws(function () { sender.start(); }); sender.stop(); sender.close();
 assert(closed && captured === 1 && sent.length === 1 && sender.metrics().sent === 1);
+var last = sender.metrics().last_sent;
+assert.strictEqual(last.sequence, sent[0].readUInt32BE(16));
+assert.strictEqual(last.age_ms, 10); assert.strictEqual(last.capture_age_ms, 10);
+assert.deepEqual(last.sections, summary(image).sections);
+assert.deepEqual(last.zones_rgb, summary(image).zones_rgb);
+last.zones_rgb[0][0] = -1; assert(sender.metrics().last_sent.zones_rgb[0][0] >= 0);
 // Old frames are dropped, errors stop after three attempts, never overlap captures.
 closed = false;captured = 0;sent = [];
 var stale = require('../tv/sender').create(config, { socket: fakeSocket, clock: function () { return 10000; }, capture: function (opts, summarize, done) {
     captured++; done({ status: 'ok', started_ms: 1, colors: summarize(image), temporary_file_removed: true });
 } });
 stale.start(); assert.strictEqual(sent.length, 0); assert.strictEqual(stale.metrics().errors, 1);
+assert.strictEqual(stale.metrics().last_sent, null);
 setTimeout(function () {
     assert.strictEqual(stale.metrics().errors, 3); assert.strictEqual(stale.metrics().running, false);
     stale.close();
