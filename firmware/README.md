@@ -4,8 +4,10 @@ The firmware builds for the classic ESP32 and ESP32-S3 using **ESP-IDF 5.5.6**.
 `espressif/led_strip` is pinned to **3.1.1**; `dependencies.lock` records the
 resolved dependency. An ESP32-S3 was flashed with LED output disabled: Wi-Fi,
 authenticated HTTP, TV UDP reception and manual OFF persistence across physical
-restart passed. Physical LED output remains untested. Later source changes,
-including the rolling freshness reference, need a separate receiver update.
+restart passed. A later S3 image also initialized the GPIO18 driver for 91 pixels
+without a connected strip, and restored saved OFF across a physical restart.
+It includes the rolling freshness reference and disabled Wi-Fi modem sleep.
+Physical LED output remains untested.
 
 ## Architecture
 

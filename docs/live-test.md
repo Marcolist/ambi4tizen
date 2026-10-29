@@ -36,7 +36,11 @@ Confirm the exact strip marking/protocol/voltage, power-supply output current,
 data GPIO and board pinout, common ground, level shifting, fuse and wire ratings.
 The GPIO candidate list only excludes known chip reservations; onboard devices
 can reserve further pins. An ESP32-S3 is not pin-compatible with a classic ESP32.
-The first flashed receiver keeps output disabled, GPIO −1 and zero LEDs.
+The first flashed receiver kept output disabled, GPIO −1 and zero LEDs.
+The subsequent preparation image enables the driver for 91 pixels on GPIO18,
+with 255/255 brightness and a 6000-mA estimate budget. It was tested with the
+strip disconnected, then set to OFF; saved OFF survived a physical restart.
+Driver initialization does not establish visible output or electrical safety.
 
 Using the conservative **60 mA per full-white LED assumption**, 91 LEDs need
 about **5.46 A / 27.3 W at 5 V**, before controller consumption and headroom.
@@ -87,15 +91,22 @@ Continuous sender tests exercise manual shutdown, capture/cleanup/socket errors,
 the optional deadline and service expiry using virtual time under Node 4.4.3.
 Receiver tests simulate about 69 days of relative clock drift and capture-clock
 wrap. These checks do not establish that a TV service will remain alive for
-days or that LEDs visibly work. The latest receiver source changes require a
-separate receiver update; installing the TV app does not flash the ESP.
+days or that LEDs visibly work. Receiver changes require a separate receiver
+update; installing the TV app does not flash the ESP.
 
 A subsequent continuous live run remained active for several minutes at about
 one frame per second with no sender errors. Some packets were rejected by the
 receiver's freshness gate; sustained loss-free delivery has not been shown.
-The next receiver build disables Wi-Fi modem sleep to avoid DTIM-related
-receive latency, at the cost of higher radio power use. Whether this improves
-the observed drops still needs a live comparison after flashing.
+The updated receiver image disables Wi-Fi modem sleep to avoid DTIM-related
+receive latency, at the cost of higher radio power use. It also refreshes the
+relative-clock reference. Because both changes were applied together, a later
+successful run cannot establish which change affected earlier drops.
+
+After this receiver update and a physical restart, a 70-second observation
+window showed 70 TV-sent frames and 70 additional accepted frames, with no new
+invalid/stale packets or sender errors. The 91-pixel driver remained initialized
+and saved OFF remained active. The strip was disconnected throughout: this
+verifies the live network/driver path, not visible LED output or long-term uptime.
 
 For a live check compare TV sent counts with ESP accepted counts beyond the old
 30-second window, inspect errors and memory, and confirm playback separately.

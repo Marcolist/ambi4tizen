@@ -24,14 +24,19 @@ Local validation:
   front-view bottom-right mapping coverage under Node 4.4.3 / host C tests.
 - Rolling freshness-reference tests: about 69 simulated days with 200 ppm drift.
 
-Hardware validation with LED output disabled:
+Hardware validation without connected LEDs:
 - ESP32-S3 flashed after a complete original flash backup; Wi-Fi and authenticated
   HTTP reachable, OFF persistence and Wi-Fi reconnect across physical restart.
 - Bounded TV-to-S3 Wi-Fi run: 30 sent, 30 accepted, no invalid/stale frames.
 - Subsequent continuous sender run: several minutes at about 1 Hz with no sender
   errors; some receiver freshness rejections, so loss-free delivery is unproven.
-- New rolling-reference and no-modem-sleep source changes are prepared for a
-  separate receiver update; their hardware effect is not yet established.
+- Updated S3 image flashed with rolling-reference/no-modem-sleep changes and
+  a 91-pixel GPIO18 driver. Initialization succeeded without a connected strip.
+  Saved OFF and Wi-Fi reconnect passed another physical restart. Visible light,
+  signal integrity and full-load current have not been tested.
+- Post-update 70-second window: 70 TV-sent / 70 additional accepted frames, no
+  new invalid/stale packets or sender errors, driver initialized, mode OFF and
+  strip disconnected. This is a short network check, not a long-term guarantee.
 
 Earlier bounded capture-only tests on Samsung UE65NU7179/Tizen 4.0/firmware 1360
 returned changing colors during Netflix, Prime Video and Disney+ playback.

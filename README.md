@@ -37,7 +37,7 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | Existing capture prototype | Successful bounded single-frame tests on UE65NU7179, Tizen 4.0 / ARMv7, firmware 1360 |
 | Internal streaming apps | Changing colors in limited Netflix, Prime Video and Disney+ tests; no universal codec/HDR guarantee |
 | New TV sender | Node 4.4.3 / UDP loopback tested; first bounded hardware run delivered 30/30 authenticated frames; continuous mode available, long-term reliability unverified |
-| ESP32 firmware | Classic ESP32 and ESP32-S3 builds using ESP-IDF 5.5.6 / led_strip 3.1.1; S3 flashed and networking/NVS restart tested with LED output disabled |
+| ESP32 firmware | Classic ESP32 and ESP32-S3 builds using ESP-IDF 5.5.6 / led_strip 3.1.1; S3 flashed, networking/NVS restart and 91-pixel driver initialization tested without connected LEDs |
 | Visible end-to-end test | Pending; a complete TV-to-LED solution has not yet been demonstrated |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
 
@@ -214,9 +214,10 @@ use `stop --sender` before launching again.
 Keep the initial interval at 1000 ms. Read `status --sender` and the ESP receive
 counters after the previous 30-second limit to confirm actual continued
 operation; `continuous=true` alone only identifies the configuration. An active
-sender does not prove that LEDs are wired or responding. The receiver's latest
-clock-drift fix requires rebuilding and flashing the receiver separately; a TV
-app update cannot update ESP firmware.
+sender does not prove that LEDs are wired or responding. Receiver changes
+require rebuilding and flashing the receiver separately; a TV app update cannot
+update ESP firmware. The latest S3 test image includes the rolling freshness
+reference and disabled Wi-Fi modem sleep, with physical LED output still pending.
 
 See [live-test preparation](docs/live-test.md) for the bottom-right start,
 30 LEDs/m estimates, power assumptions and the checks before enabling LEDs.
