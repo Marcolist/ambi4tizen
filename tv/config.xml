@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="https://local.invalid/ambilight-sender" version="0.2.0" viewmodes="maximized">
+  <tizen:application id="ambiSend40.Start" package="ambiSend40" required_version="3.0" />
+  <content src="index.html" />
+  <name>Ambilight Sender</name>
+  <icon src="icon.svg" />
+  <feature name="http://tizen.org/feature/web.service" />
+  <tizen:profile name="tv-samsung" />
+  <tizen:privilege name="http://tizen.org/privilege/internet" />
+  <tizen:privilege name="http://tizen.org/privilege/application.launch" />
+  <tizen:service id="ambiSend40.Service">
+    <tizen:content src="service.js" />
+    <tizen:name>Ambilight UDP Sender</tizen:name>
+    <tizen:description>Bounded local capture and color transmission</tizen:description>
+    <tizen:category name="http://tizen.org/category/service" />
+  </tizen:service>
+  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="enable" encryption="disable" install-location="auto" hwkey-event="enable" />
+</widget>

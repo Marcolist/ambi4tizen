@@ -1,0 +1,7 @@
+jpeg-js 0.4.4, lib/decoder.js
+Source: https://github.com/jpeg-js/jpeg-js/blob/9ccd35fb5f55a6c4f1902ac5b0f270f675750c27/lib/decoder.js
+Upstream blob: 1982481806e5fe29bd38cb008297f35731ade20b
+Decoder header: Copyright 2011 notmasteryet, Apache-2.0.
+Package license: Copyright 2014 Eugene Ware, BSD-3-Clause.
+Local modification: replace two default parameters, object spread, three template strings and one block-scoped constant with ES5 equivalents. No decoder algorithm changes.
+Whitespace normalization: trailing spaces and final blank lines removed from decoder and package license; license wording unchanged.

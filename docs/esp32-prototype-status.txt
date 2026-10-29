@@ -1,0 +1,45 @@
+Ambi4Tizen – technical status
+
+Implemented:
+- TV-side JPEG capture/cleanup based on an existing working Tizen 4 service.
+- ES5/Node 4.4.3 UDP sender, configurable U-edge sampling: 6/12/18/24 zones.
+- Classic ESP32 firmware with separate receiver, configuration, color engine,
+  LED driver, mode manager and diagnostics components.
+- HMAC/sequence/session/age checks, newest-frame queue and stream timeout.
+- Configurable LED sections/start/direction, corner interpolation, gamma,
+  time-based smoothing and brightness/current estimation.
+- OFF/AMBILIGHT/AMBIENT/AUTO with manual priority, persistent settings and
+  bounded Wi-Fi reconnect backoff.
+
+Local validation:
+- ESP32 build with ESP-IDF 5.5.6 and led_strip 3.1.1.
+- Portable production C modules under ASan/UBSan, including malformed packets,
+  clock/sequence wrapping, modes, mapping and configuration persistence errors.
+- Actual NVS adapter tested against a failure-injecting memory stub.
+- Node 4.4.3 compatibility with synthetic JPEGs, capture exclusivity and cleanup.
+- Actual Node sender -> loopback UDP -> actual C receiver/color engine.
+- Independent Python encoder interoperability, replay/age/timeout rejection.
+- TV widget signing through the SDK signing task; generated packages remain local.
+
+Earlier bounded capture-only tests on Samsung UE65NU7179/Tizen 4.0/firmware 1360
+returned changing colors during Netflix, Prime Video and Disney+ playback.
+This establishes neither universal title/codec/HDR support nor sustained rate.
+No private viewing logs, frame hashes, exact timestamps or device identifiers
+are included in this public repository.
+
+Not established:
+- Complete new-sender -> real Wi-Fi -> physical ESP -> visible LED operation.
+- Actual GPIO timing/current supply, hardware reconnect and NVS across power loss.
+- Continuous TV background lifetime, app switches, long-run heap stability,
+  higher capture rates or smaller capture resolutions on the real TV.
+- Reliable Samsung boot startup; initial app launch remains manual.
+- ESP32-C6 build, Zigbee integration, radio coexistence or Hue compatibility.
+
+Defaults are deliberately disabled. First active test: bounded 30-second run,
+480x270, 12 zones, target interval 1000 ms. Inspect processing-stage timings,
+memory and receiver counters before increasing rate or duration. A target
+interval is not a measured sustained frame rate.
+
+Run local tests: bash test/run_all.sh
+Hardware prerequisites: docs/esp32-hardware-test.txt
+Phase 2 considerations: docs/esp32-c6-phase2.txt

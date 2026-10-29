@@ -1,0 +1,12 @@
+<Project Sdk="Tizen.NET.Sdk/1.1.9">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>tizen40</TargetFramework>
+    <AssemblyName>Ambi4TizenWidgetSigner</AssemblyName>
+  </PropertyGroup>
+  <!-- SDK signing only. No .NET application is compiled or installed on the TV. -->
+  <Target Name="SignProbeWidget" DependsOnTargets="TizenPrepareCertificate">
+    <Error Condition="'$(ProbeWidgetDir)' == '' OR '$(ProbeWidgetOutput)' == ''" Text="Explicit local widget input/output required" />
+    <Sign RootDir="$(ProbeWidgetDir)" AuthorFile="$(AuthorPath)" AuthorPassword="$(AuthorPass)" DistFile="$(DistributorPath)" DistPassword="$(DistributorPass)" OutputSignedTpk="$(ProbeWidgetOutput)" />
+  </Target>
+</Project>

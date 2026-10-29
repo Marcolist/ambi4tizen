@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Ambilight diagnostics</title></head>
+<body style="background:#111;color:#eee;font:30px sans-serif;padding:60px">
+<p id="status">Starting temporary diagnostic service…</p>
+<p>Temporary color diagnostics are available for five minutes. You can return to your streaming app.</p>
+<script>
+window.onload = function () {
+  tizen.application.launch('ambiProbe4.Service', function () {
+    document.getElementById('status').textContent = 'Diagnostic service started.';
+    setTimeout(function () { tizen.application.getCurrentApplication().hide(); }, 800);
+  }, function (error) { document.getElementById('status').textContent = error.name + ': ' + error.message; });
+};
+window.onkeydown = function (event) { if (event.keyCode === 10009) tizen.application.getCurrentApplication().exit(); };
+</script></body></html>

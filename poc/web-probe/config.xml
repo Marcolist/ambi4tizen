@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="https://local.invalid/ambilight-probe" version="0.1.5" viewmodes="maximized">
+  <tizen:application id="ambiProbe4.Probe" package="ambiProbe4" required_version="3.0" />
+  <content src="index.html" />
+  <name>Ambilight Web Probe</name>
+  <icon src="icon.svg" />
+  <feature name="http://tizen.org/feature/web.service" />
+  <tizen:profile name="tv-samsung" />
+  <tizen:privilege name="http://tizen.org/privilege/internet" />
+  <tizen:privilege name="http://tizen.org/privilege/application.launch" />
+  <tizen:service id="ambiProbe4.Service">
+    <tizen:content src="service.js" />
+    <tizen:name>Ambilight Web Probe Service</tizen:name>
+    <tizen:description>Temporary read-only capture-service diagnostics</tizen:description>
+    <tizen:category name="http://tizen.org/category/service" />
+  </tizen:service>
+  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="enable" encryption="disable" install-location="auto" hwkey-event="enable" />
+</widget>

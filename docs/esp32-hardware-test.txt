@@ -1,0 +1,42 @@
+Ambi4Tizen – hardware prerequisites and bounded acceptance test
+
+No wiring or power rating may be inferred from the software defaults.
+Keep output_enabled=false until the actual hardware has been checked.
+
+Check before connecting a strip:
+- Actual LED model/markings and required supply voltage.
+- Suitable supply model/rating, wire gauge, fuse and distribution.
+- Appropriate data level shifting and its own voltage requirements.
+- Exact ESP board, available output GPIO and flash size.
+- Shared ground and correct strip data direction.
+- Actual number of LEDs on the left, top and right sections.
+
+If the ESP is USB-powered, do not tie its USB 5-V output to an independent
+LED power supply output. Verify the actual wiring and common ground rather
+than assuming a generic board pinout. Software current estimation is not
+electrical protection and does not replace a suitable fuse or power supply.
+Do not improvise tests when required safety components are missing.
+
+Suggested acceptance sequence, on hardware you control:
+1. Complete private configuration, validate pin/layout/supply and choose a
+   new profile_id when replacing an old physical/network configuration.
+2. First flash with LED output disabled. Verify Wi-Fi and authenticated status.
+   Confirm exact board/flash capacity before choosing flash parameters.
+3. Power off before connecting the verified LED setup. Begin with a small,
+   dim pattern and checked current budget, never an initial full-white load.
+4. Check color order, direction, start, each section and both top corners.
+5. Check immediate OFF, stream timeout, manual AMBIENT priority and AUTO fallback.
+6. Check reconnect and persistence after restart without changing router settings.
+7. Only then install/configure the TV sender and run one bounded 30-second
+   test, initially 480x270, 12 zones and 1000-ms target interval.
+8. Confirm playback remains normal; inspect timings, memory and receive counts.
+   Stop at playback disruption, cleanup failure or repeated errors.
+
+Installation is distinct from active capture. A sender built with enabled=false
+does not capture or open its diagnostics port. Configuration changes require
+rebuilding and reinstalling the TV package. No boot startup is configured.
+
+Longer runs, higher rates, smaller captures and application switching are
+separate validation steps after the first end-to-end success. Hue/Zigbee and
+autostart investigation follow later. No root, protected system changes or
+firmware/security workarounds are part of this procedure.
