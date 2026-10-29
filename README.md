@@ -36,7 +36,8 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | --- | --- |
 | Existing capture prototype | Successful bounded single-frame tests on UE65NU7179, Tizen 4.0 / ARMv7, firmware 1360 |
 | Internal streaming apps | Changing colors in limited Netflix, Prime Video and Disney+ tests; no universal codec/HDR guarantee |
-| New TV sender | Node 4.4.3 / UDP loopback tested; first bounded hardware run delivered 30/30 authenticated frames; continuous mode available, long-term reliability unverified |
+| TV color plausibility | Live averaged RGB zones were compared with the visible TV image and judged plausible by the operator; physical LED color matching remains unverified |
+| New TV sender | Continuous operation tested on the TV; one 70-second post-update window delivered 70/70 frames to the S3 without new invalid/stale packets or sender errors; long-term reliability unverified |
 | ESP32 firmware | Classic ESP32 and ESP32-S3 builds using ESP-IDF 5.5.6 / led_strip 3.1.1; S3 flashed, networking/NVS restart and 91-pixel driver initialization tested without connected LEDs |
 | Visible end-to-end test | Pending; a complete TV-to-LED solution has not yet been demonstrated |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
@@ -199,6 +200,38 @@ After the test window, five seconds remain for reading status before the
 service exits. `Connection refused` is normal when the service has ended or is
 disabled. Verify installation using `applist`. No boot startup is configured.
 Stop immediately if playback stutters or hangs; extend tests only after review.
+
+## Check live colors against the TV image
+
+Read the current palette and receiver state while the sender is running:
+
+```bash
+python3 poc/deploy_web_probe.py status --sender
+python3 tools/controller.py status
+```
+
+The TV response's `last_sent` field contains the latest sent packet's averaged
+`zones_rgb`, `sections`, sequence and `capture_age_ms`. It is `null` before the
+first successful send. Check that `running=true`, the age is recent and the
+sequence advances. Colors left over from a stopped sender are not a live sample.
+Access uses the existing private developer-IP and bearer-token checks.
+
+For the default 12-zone layout, `sections=[3,6,3]`: three zones run from bottom
+left upward, six across the top from left to right, and three down the right,
+**viewed from the front of the TV**. Compare these edge colors with the visible
+image. This averages regions of the image; it does not return a screenshot.
+
+The operator confirmed that a sampled live palette was plausible against the
+TV image. The receiver was in AUTO with an active stream and an initialized
+91-pixel driver. The commissioned configuration allows 255/255 brightness;
+visible LED colors, physical placement and full-load power remain unverified.
+Interpolation, gamma and smoothing also affect the expected LED output, so
+raw zone RGB values are not final LED drive values. Full configured brightness
+still follows the brightness and colors of the sampled image regions.
+
+Confirm delivery separately using increasing ESP `rx.accepted` counts and
+`effective=AMBILIGHT` with `stream=true`. UDP send success alone does not prove
+delivery or visible light. Keep live palettes and viewing logs private.
 
 ## Continuous operation and LED preparation
 
