@@ -66,3 +66,11 @@ duration and three section LED counts. OFF follows within three seconds after
 the pattern ends. Never reuse a test key on real hardware. LAN transmission
 requires the pattern sender's explicit `--allow-lan` option; that option does
 not replace hardware review or approval.
+## Continuous-operation checks
+
+The suite also exercises continuous and bounded sender lifetimes, manual stop
+during capture, cleanup/capture/socket failures, authenticated service shutdown
+and launcher reopening under Node 4.4.3. Virtual-clock receiver tests span about
+69 days with clock drift and wrap, checking that a delayed frame cannot refresh
+the reference before passing the lag check. Bottom-right physical mapping and
+target-specific reserved GPIO exclusions are covered without touching hardware.

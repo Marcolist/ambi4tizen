@@ -45,8 +45,11 @@ ambi_accept_t ambi_stream_accept(ambi_stream_state_t *s, const ambi_frame_t *f,
         if (sender_elapsed >= 0x80000000u) return AMBI_STALE;
         int64_t lag = (int64_t)(now - s->anchor_rx_ms) - sender_elapsed;
         if (lag > max_lag) return AMBI_STALE;
-        // Anchor to the least-delayed accepted arrival, never hide growing lag.
-        if (lag < 0) { s->anchor_rx_ms = now; s->anchor_capture_ms = f->capture_ms; }
+        // Check delay before refreshing the reference. Bound clock drift and
+        // uint32 capture-clock wrap during long sessions to a one-minute window.
+        if (lag < 0 || now - s->anchor_rx_ms >= 60000) {
+            s->anchor_rx_ms = now; s->anchor_capture_ms = f->capture_ms;
+        }
     }
     if (changed) {
         if (s->active) s->retired[s->retired_next++ % 8] = s->session;

@@ -1,9 +1,11 @@
-# ESP-WROOM-32 prototype
+# ESP32 / ESP32-S3 prototype
 
-The firmware builds for the classic ESP32 using **ESP-IDF 5.5.6**.
+The firmware builds for the classic ESP32 and ESP32-S3 using **ESP-IDF 5.5.6**.
 `espressif/led_strip` is pinned to **3.1.1**; `dependencies.lock` records the
-resolved dependency. The local build passes. Flashing and physical LED output
-have not yet been tested.
+resolved dependency. An ESP32-S3 was flashed with LED output disabled: Wi-Fi,
+authenticated HTTP, TV UDP reception and manual OFF persistence across physical
+restart passed. Physical LED output remains untested. Later source changes,
+including the rolling freshness reference, need a separate receiver update.
 
 ## Architecture
 
@@ -41,7 +43,13 @@ idf.py -C firmware build
 
 A fresh checkout can also use a normal installation of this SDK version.
 `sdkconfig.defaults` selects ESP32/4-MB flash. Confirm the actual module,
-flash capacity and board pinout **before flashing**. Generated `sdkconfig`,
+flash capacity and board pinout **before flashing**. Set the private top-level
+`target` to `esp32` (default) or `esp32s3` to match the detected chip. The
+configuration generator and driver use target-specific GPIO candidates; the
+generated header rejects an SDK target mismatch. This does not select the SDK
+target automatically. For S3, use a separate ignored build project configured
+with `idf.py set-target esp32s3` and the verified flash capacity; do not flash
+classic ESP32 images to an S3 or assume every S3 board has the same pinout. Generated `sdkconfig`,
 build files, SDKs and binaries are ignored. Automated checks do not flash or
 open a serial monitor.
 
@@ -67,7 +75,10 @@ this is a software limit, not a power-supply rating. No fixed frame LED count
 is built into the program.
 
 Mapping runs from the bottom left upward, across the top and down the right,
-looking at the screen from the front. `start_offset` identifies the physical
+looking at the screen from the front. For LED 0 at bottom right going up the
+right side, left across the top and down the left, use `reverse=true` and
+`start_offset=total_leds-1`. This routing must be physically confirmed.
+`start_offset` identifies the physical
 LED index at that starting point; `reverse` reverses the physical direction.
 Interpolation respects section lengths and blends corners without bridging
 the unlit bottom. Establish direction with a few dim test points.
@@ -112,6 +123,8 @@ ESP HTTP port 8080 provides `GET /status` and `POST /command`. Both require
 `Authorization: Bearer <private token>`. Status contains no passwords/keys.
 Use only on a trusted LAN: HTTP is unencrypted. Do not forward this port.
 The Wi-Fi station requires at least WPA2; open networks are not supported.
+The USB/mains-powered receiver disables modem sleep to avoid DTIM-related
+receive latency. This increases radio power use; it does not guarantee delivery.
 
 After hardware review and commissioning:
 
@@ -135,8 +148,9 @@ that a physical strip is attached or visibly responding.
 
 `bash test/run_all.sh` checks portable production modules under ASan/UBSan,
 the NVS adapter against a failure-injecting memory stub and the TV sender chain
-over actual UDP loopback. See the [test guide](../test/README.md). Actual radio
-reconnect, NVS across physical restart, GPIO timing and LEDs remain untested.
+over actual UDP loopback. See the [test guide](../test/README.md). Wi-Fi
+reconnection and NVS across a physical restart passed on one S3 receiver with
+output disabled. GPIO timing, LED wiring and visible output remain untested.
 Hardware/TV checks: [test plan](../docs/esp32-hardware-test.txt).
 
 Portable components can be reused for ESP32-C6. Pins, SPI driver, SDK version
@@ -146,3 +160,8 @@ integration has been implemented.
 Driver/SDK sources:
 [ESP-IDF 5.5.6](https://github.com/espressif/esp-idf/releases/tag/v5.5.6),
 [Espressif LED Strip 3.1.1](https://components.espressif.com/components/espressif/led_strip/versions/3.1.1/readme).
+
+S3 GPIO reservations: [Espressif GPIO documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/gpio.html).
+The conservative candidate list excludes strapping, flash/PSRAM (including
+octal-memory pins), native USB and the UART0 diagnostic pins. Board-specific
+onboard devices may reserve additional pins; the list is not wiring approval.

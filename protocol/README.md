@@ -41,7 +41,7 @@ reduce the local brightness/cap. Authentication is not encryption.
 Sequence delta must be 1..2³¹−1, so normal uint32 wrap works. Reported capture
 age must be at most 1500 ms by default. Within a session, relative sender-clock
 progress is compared with receiver arrival progress. Arrival lag over the
-fastest observed anchor may not exceed 600 ms by default. Bad packets never
+current reference may not exceed 600 ms by default. Bad packets never
 refresh stream presence or modify its sequence/anchor.
 
 A new session may take over only after the current stream timeout (default
@@ -51,18 +51,21 @@ clocks the first authenticated packet's one-way network delay is unknown.
 Replays after receiver reboot or retirement-cache eviction cannot always be
 identified. Keys are private, but a party holding the key can forge frames.
 
-The current relative clock gate is intended for bounded prototype runs. Its
-anchor interval must remain below 2³¹ ms (~24.9 days), and clock drift has not
-been characterized across long runs. Long-running production operation needs
-an explicit clock/re-anchoring policy plus live testing. No such duration is
-claimed by this prototype.
+The reference moves to faster arrivals and is refreshed after 60 seconds,
+**only after** the current packet passes the lag check. This bounds relative
+clock drift and permits capture-clock wrap during continuous sessions. Tests
+simulate about 69 days at 200 ppm relative drift; this is not a hardware uptime
+claim. Freshness is relative to this rolling window: gradual network-delay
+growth within the threshold may be absorbed by refreshes. Without clock
+synchronization, absolute transport latency is not proven. A very long gap
+beyond 2³¹ ms in the same session requires a sender restart/new session.
 
 ## Delivery and scheduling
 
 There is no retransmission or frame acknowledgment. Only the newest accepted
 frame is retained in the ESP queue. TV captures never overlap. The default run
 is 30 seconds at a target interval of 1000 ms; minimum supported interval is
-500 ms. A slow capture lowers the actual rate instead of creating a queue.
+500 ms. Set `duration_ms=0` explicitly for no configured time limit. A slow capture lowers the actual rate instead of creating a queue.
 Three consecutive processing/send errors stop the sender. A cleanup failure
 stops it immediately. UDP send success means the local OS accepted a datagram;
 receiver counters are needed to confirm delivery.

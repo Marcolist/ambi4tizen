@@ -1,12 +1,23 @@
-<!doctype html><html lang="de"><meta charset="utf-8"><title>Ambilight Sender</title>
-<body style="background:#111;color:white;font:24px sans-serif"><p id="state">Ambilight wird gestartet …</p>
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Ambilight Sender</title>
+<body style="background:#111;color:white;font:24px sans-serif"><p id="state">Starting Ambilight…</p>
 <script>
 window.onload = function () {
-    tizen.application.launch('ambiSend40.Service', function () {
-        tizen.application.getCurrentApplication().hide();
-    }, function () { document.getElementById('state').textContent = 'Der Dienst konnte nicht gestartet werden. Mit Zurück schließen.'; });
+    var launching = false;
+    function launch() {
+        if (launching) return;
+        launching = true;
+        tizen.application.launch('ambiSend40.Service', function () {
+            tizen.application.getCurrentApplication().hide();
+            launching = false;
+        }, function () {
+            launching = false;
+            document.getElementById('state').textContent = 'Unable to start the service. Press Back to close.';
+        });
+    }
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) launch(); });
     document.addEventListener('tizenhwkey', function (event) {
         if (event.keyName === 'back') tizen.application.getCurrentApplication().exit();
     });
+    launch();
 };
 </script></body></html>

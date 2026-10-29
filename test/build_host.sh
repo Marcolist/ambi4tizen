@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p test/build
-parts=(ambilight_receiver configuration color_engine mode_manager)
+parts=(ambilight_receiver configuration color_engine mode_manager led_driver)
 includes=()
 for part in "${parts[@]}"; do includes+=("-Ifirmware/components/$part"); done
 shared=(firmware/components/ambilight_receiver/{protocol,auth,reconnect}.c firmware/components/configuration/configuration.c firmware/components/color_engine/color_engine.c firmware/components/mode_manager/mode_manager.c)

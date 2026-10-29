@@ -3,7 +3,7 @@
 **Native TV colors. Local light.**
 
 An experimental Ambilight prototype for Samsung TVs running **Tizen 4.0** and
-an **ESP-WROOM-32** driving WS2812B LEDs. The “4” means both “for” and Tizen 4.
+an **ESP32 / ESP32-S3** receiver intended to drive WS2812B LEDs. The “4” means both “for” and Tizen 4.
 
 ```text
 Internal TV app → TV-side capture → RGB edge zones → Wi-Fi/UDP → ESP32 → LEDs
@@ -36,8 +36,8 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | --- | --- |
 | Existing capture prototype | Successful bounded single-frame tests on UE65NU7179, Tizen 4.0 / ARMv7, firmware 1360 |
 | Internal streaming apps | Changing colors in limited Netflix, Prime Video and Disney+ tests; no universal codec/HDR guarantee |
-| New TV sender | Implemented and tested locally under Node 4.4.3 and over UDP loopback; sustained live operation remains unverified |
-| ESP32 firmware | Built for the classic ESP32 using ESP-IDF 5.5.6 and led_strip 3.1.1 |
+| New TV sender | Node 4.4.3 / UDP loopback tested; first bounded hardware run delivered 30/30 authenticated frames; continuous mode available, long-term reliability unverified |
+| ESP32 firmware | Classic ESP32 and ESP32-S3 builds using ESP-IDF 5.5.6 / led_strip 3.1.1; S3 flashed and networking/NVS restart tested with LED output disabled |
 | Visible end-to-end test | Pending; a complete TV-to-LED solution has not yet been demonstrated |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
 
@@ -133,6 +133,7 @@ Before an active test, also configure these values locally:
 
 | Setting | Meaning |
 | --- | --- |
+| `target` | Detected chip: `esp32` or `esp32s3`; match the SDK target separately |
 | `firmware.ssid`, `firmware.password` | Wi-Fi credentials for the ESP |
 | `sender.esp_ip` | Actual ESP IPv4 address, not a placeholder or broadcast address |
 | `sender.developer_ip` | Computer IP allowed to request status/stop |
@@ -140,7 +141,7 @@ Before an active test, also configure these values locally:
 | `sender.zones` | 6, 12, 18 or 24; default 12 |
 | `sender.resolution` | Initially `480x270` |
 | `sender.interval_ms` | Initially `1000` |
-| `sender.duration_ms` | Initially `30000` |
+| `sender.duration_ms` | Initially `30000`; `0` explicitly selects continuous operation |
 
 Set `sender.enabled=true` only before a deliberate active test. **Every TV
 configuration change requires rebuilding and reinstalling the package.** The
@@ -199,6 +200,27 @@ service exits. `Connection refused` is normal when the service has ended or is
 disabled. Verify installation using `applist`. No boot startup is configured.
 Stop immediately if playback stutters or hangs; extend tests only after review.
 
+## Continuous operation and LED preparation
+
+After reviewing a short test, set `sender.duration_ms=0` locally, rebuild and
+reinstall the TV app, then launch it as above. The default remains 30 seconds.
+Zero removes both the sender deadline and the service expiry timer. Manual
+stop, capture/cleanup errors, TV shutdown and operating-system termination can
+still end the service. This does not configure startup when the TV turns on.
+Once the service has exited, reopen the launcher or use the launch command to
+start it again. If an error stops captures while diagnostics remain reachable,
+use `stop --sender` before launching again.
+
+Keep the initial interval at 1000 ms. Read `status --sender` and the ESP receive
+counters after the previous 30-second limit to confirm actual continued
+operation; `continuous=true` alone only identifies the configuration. An active
+sender does not prove that LEDs are wired or responding. The receiver's latest
+clock-drift fix requires rebuilding and flashing the receiver separately; a TV
+app update cannot update ESP firmware.
+
+See [live-test preparation](docs/live-test.md) for the bottom-right start,
+30 LEDs/m estimates, power assumptions and the checks before enabling LEDs.
+
 ## 6. Uninstall
 
 ```bash
@@ -222,6 +244,7 @@ See [Samsung's troubleshooting guide](https://developer.samsung.com/smarttv/deve
 | [Protocol](protocol/README.md) | UDP format, authentication and freshness |
 | [Project status](docs/esp32-prototype-status.txt) | Technical evidence and open questions |
 | [Hardware test](docs/esp32-hardware-test.txt) | Power and wiring checks |
+| [Live-test preparation](docs/live-test.md) | Continuous sender and front-view bottom-right LED mapping |
 | [Future C6/Zigbee support](docs/esp32-c6-phase2.txt) | Prepared architecture and SDK review |
 | [Capture diagnostic](poc/README.md) | Bounded baseline test |
 

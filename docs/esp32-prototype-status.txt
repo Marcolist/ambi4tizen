@@ -3,7 +3,7 @@ Ambi4Tizen – technical status
 Implemented:
 - TV-side JPEG capture/cleanup based on an existing working Tizen 4 service.
 - ES5/Node 4.4.3 UDP sender, configurable U-edge sampling: 6/12/18/24 zones.
-- Classic ESP32 firmware with separate receiver, configuration, color engine,
+- Classic ESP32 and ESP32-S3 firmware with separate receiver, configuration, color engine,
   LED driver, mode manager and diagnostics components.
 - HMAC/sequence/session/age checks, newest-frame queue and stream timeout.
 - Configurable LED sections/start/direction, corner interpolation, gamma,
@@ -20,6 +20,18 @@ Local validation:
 - Actual Node sender -> loopback UDP -> actual C receiver/color engine.
 - Independent Python encoder interoperability, replay/age/timeout rejection.
 - TV widget signing through the SDK signing task; generated packages remain local.
+- Explicit continuous TV sender mode, deadline/error/manual-stop tests and
+  front-view bottom-right mapping coverage under Node 4.4.3 / host C tests.
+- Rolling freshness-reference tests: about 69 simulated days with 200 ppm drift.
+
+Hardware validation with LED output disabled:
+- ESP32-S3 flashed after a complete original flash backup; Wi-Fi and authenticated
+  HTTP reachable, OFF persistence and Wi-Fi reconnect across physical restart.
+- Bounded TV-to-S3 Wi-Fi run: 30 sent, 30 accepted, no invalid/stale frames.
+- Subsequent continuous sender run: several minutes at about 1 Hz with no sender
+  errors; some receiver freshness rejections, so loss-free delivery is unproven.
+- New rolling-reference and no-modem-sleep source changes are prepared for a
+  separate receiver update; their hardware effect is not yet established.
 
 Earlier bounded capture-only tests on Samsung UE65NU7179/Tizen 4.0/firmware 1360
 returned changing colors during Netflix, Prime Video and Disney+ playback.
@@ -29,7 +41,7 @@ are included in this public repository.
 
 Not established:
 - Complete new-sender -> real Wi-Fi -> physical ESP -> visible LED operation.
-- Actual GPIO timing/current supply, hardware reconnect and NVS across power loss.
+- Actual GPIO timing/current supply and physical LED output.
 - Continuous TV background lifetime, app switches, long-run heap stability,
   higher capture rates or smaller capture resolutions on the real TV.
 - Reliable Samsung boot startup; initial app launch remains manual.

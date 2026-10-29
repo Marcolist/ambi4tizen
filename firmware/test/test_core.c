@@ -3,6 +3,7 @@
 #include "ambi_color.h"
 #include "ambi_mode.h"
 #include "ambi_reconnect.h"
+#include "gpio_policy.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -68,6 +69,23 @@ static void modes(void) {
     s.ambient_on=false;ambi_mode_set(&s,AMBI_AUTO);assert(ambi_mode_effective(&s,false,0,9000,3000)==AMBI_OFF);
     puts("PASS modes: manual priority, AUTO fallback, AMBILIGHT timeout, OFF ignores stream");
 }
+static void continuous_stream_tests(void) {
+    ambi_stream_state_t s={0};ambi_frame_t f={.session=1,.capture_ms=0xfffffff0};
+    uint64_t now=1000;
+    assert(ambi_stream_accept(&s,&f,now,3000,1500,600)==AMBI_ACCEPT);
+    // About 69 days including capture-clock wrap and 200 ppm relative drift.
+    for(unsigned i=0;i<100000;i++) {
+        f.sequence++;f.capture_ms+=60000;now+=60012;
+        assert(ambi_stream_accept(&s,&f,now,3000,1500,600)==AMBI_ACCEPT);
+    }
+    uint64_t anchor=s.anchor_rx_ms;uint32_t sequence=s.sequence;
+    f.sequence++;f.capture_ms+=60000;
+    // Even at a re-anchor boundary, excessive added delay must be rejected.
+    assert(ambi_stream_accept(&s,&f,now+60601,3000,1500,600)==AMBI_STALE);
+    assert(s.anchor_rx_ms==anchor && s.sequence==sequence);
+    assert(ambi_stream_accept(&s,&f,now+60012,3000,1500,600)==AMBI_ACCEPT);
+    puts("PASS continuous freshness: 69 simulated days, drift, clock wrap and delay before re-anchor");
+}
 static void config_tests(void) {
     ambi_config_t c,out;ambi_config_defaults(&c);uint8_t encoded[AMBI_CONFIG_BYTES],copy[AMBI_CONFIG_BYTES];
     assert(ambi_config_validate(&c));assert(!c.output_enabled && c.gpio==-1 && !ambi_led_count(&c));
@@ -116,6 +134,13 @@ static void color_tests(void) {
         bool used[AMBI_MAX_LEDS]={0};for(unsigned i=0;i<n;i++){unsigned p=ambi_physical_index(&c,i);assert(p<n && !used[p]);used[p]=true;}
         assert(ambi_config_validate(&c));ambi_color_init(&engine,&c);ambi_color_render(&engine,&c,&f,AMBI_AMBILIGHT,c.ambient,500,out);
     }
+    // Physical LED 0 at bottom right, going up right, left across top, down left.
+    c.leds_left=2;c.leds_top=3;c.leds_right=4;c.start_offset=8;c.reverse=true;
+    c.brightness=c.brightness_cap=255;c.gamma_milli=1000;c.smoothing_ms=0;
+    f=(ambi_frame_t){.left=2,.top=3,.right=4,.count=9};
+    for(unsigned i=0;i<9;i++)f.zones[i]=(ambi_rgb_t){i*20,0,0};
+    ambi_color_init(&engine,&c);ambi_color_render(&engine,&c,&f,AMBI_AMBILIGHT,c.ambient,600,out);
+    for(unsigned i=0;i<9;i++)assert(out[i].r==(8-i)*20);
     puts("PASS colors: U mapping, direction/start, corner interpolation, gamma, EMA, brightness/current cap, 3..600 LEDs");
 }
 static void reconnect(void) {
@@ -126,7 +151,16 @@ static void reconnect(void) {
     ambi_reconnect_lost(&s,1000000);assert(s.due==1000500);assert(ambi_reconnect_due(&s,1000500));
     puts("PASS reconnect: exponential backoff, cap, connected pause, reset after disconnect");
 }
+static void gpio_tests(void) {
+    const int reserved_s3[]={-1,0,3,19,20,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,43,44,45,46,49};
+    for(unsigned i=0;i<sizeof(reserved_s3)/sizeof(reserved_s3[0]);i++)assert(!ambi_gpio_allowed(reserved_s3[i],true));
+    assert(ambi_gpio_allowed(18,true) && ambi_gpio_allowed(21,true));
+    assert(ambi_gpio_allowed(19,false) && !ambi_gpio_allowed(19,true));
+    assert(!ambi_gpio_allowed(38,false) && ambi_gpio_allowed(38,true));
+    assert(!ambi_gpio_allowed(0,false) && !ambi_gpio_allowed(34,false));
+    puts("PASS GPIO: target-specific candidates, S3 flash/PSRAM/USB/strapping/UART exclusions");
+}
 int main(void) {
     for(unsigned i=0;i<32;i++)key[i]=i;
-    protocol_tests();stream_tests();modes();config_tests();color_tests();reconnect();puts("ALL CORE TESTS PASSED");return 0;
+    protocol_tests();stream_tests();continuous_stream_tests();modes();config_tests();color_tests();reconnect();gpio_tests();puts("ALL CORE TESTS PASSED");return 0;
 }

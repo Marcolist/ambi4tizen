@@ -1,7 +1,7 @@
 # Samsung sender for Tizen 4 / Node.js 4.4.3
 
 The existing service's proven capture call remains the foundation. The new
-`ambiSend40` app is a separately built, bounded UDP sender, disabled by default.
+`ambiSend40` app is a separately built UDP sender with a configurable time limit, disabled by default.
 A live test of the new sender including LED output is still pending. Setup:
 [main README](../README.md). The diagnostic package remains separate.
 
@@ -32,7 +32,7 @@ Create the private file/header as described in the
 | edge_depth | 0.02–0.25; default 0.1 |
 | resolution | 480x270, alternatively 320x180 or 160x90 |
 | interval_ms | 1000; minimum supported value 500 |
-| duration_ms | 30000; longer live runs require separate approval |
+| duration_ms | 30000 by default; 0 explicitly selects continuous operation; otherwise 1000–3600000 |
 
 ```sh
 python3 tools/build_sender.py
@@ -45,7 +45,7 @@ ES5/Node code and the existing licensed JPEG decoder. Output:
 signed but its service performs no work on startup. Private keys are written
 only into the ignored local package. Building does not install or contact the TV.
 
-Launching the UI later starts the service and hides the UI. This does not
+Launching or reopening the UI starts the service and hides the UI. This does not
 establish boot startup. Continued operation alongside Netflix, Prime Video
 and Disney+ requires new practical tests after installation.
 
@@ -76,8 +76,11 @@ This is a configured target, not a measured sustained TV rate.
 HTTP 18793 accepts only the private developer IP and bearer token.
 `GET /status` returns aggregate timings for broker, file read, JPEG decode,
 zone processing, optional hashing and cleanup, plus initial/peak/latest RSS
-and heap. `POST /stop` waits for capture completion and cleanup. Five seconds
-remain after the test window to read diagnostics before the process exits.
+and heap. `continuous`, `running` and `stop_reason` describe sender state.
+`POST /stop` waits for capture completion and cleanup. In a bounded run, five
+seconds remain after the test window before process exit. In continuous mode
+there is no expiry timer; error stops still apply and diagnostics remain
+available until explicit stop or service termination.
 No arbitrary file or program commands are exposed. The sender/ESP operating
 chain does not need a permanent PC service.
 
@@ -85,7 +88,8 @@ First test 480x270 / 12 zones / 1 Hz / 30 seconds after approval. Compare smalle
 resolutions and different zone counts one at a time afterward. Inspect broker
 and decode costs, maximum frame age, playback, packet loss and memory without
 disrupting normal TV operation. Local fixtures cannot rule out TV memory leaks
-or application-switching problems. Longer runs and higher rates need further review.
+or application-switching problems. Review live counters and playback before
+extending tests or increasing the rate. Continuous mode is not a reliability guarantee.
 
 Investigate boot startup only after a visible end-to-end success. Currently the
 app must be started deliberately. Reliable background startup when the TV turns

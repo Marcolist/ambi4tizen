@@ -1,4 +1,5 @@
 {
+  "target": "esp32",
   "firmware": {
     "ssid": "",
     "password": "",

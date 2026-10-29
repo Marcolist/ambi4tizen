@@ -14,7 +14,7 @@ function shutdown() {
     drained();
 }
 module.exports.onStart = function () {
-    if (!CONFIG || !CONFIG.enabled) return;
+    if (!CONFIG || !CONFIG.enabled || sender || ending) return;
     sender = require('./sender').create(CONFIG);
     server = require('http').createServer(function (req, res) {
         var peer = req.connection.remoteAddress.replace(/^::ffff:/, '');
@@ -32,7 +32,7 @@ module.exports.onStart = function () {
     server.listen(18793, '0.0.0.0');
     try { sender.start(); } catch (e) { shutdown(); return; }
     // Leave a short diagnostics window after the bounded capture run.
-    expiry = setTimeout(shutdown, CONFIG.duration_ms + 5000);
+    if (CONFIG.duration_ms !== 0) expiry = setTimeout(shutdown, CONFIG.duration_ms + 5000);
 };
 module.exports.onStop = function () {
     if (expiry) clearTimeout(expiry);

@@ -3,9 +3,11 @@ var zones = require('./zones'), protocol = require('./protocol'), core = require
 exports.create = function (config, dependencies) {
     var d = dependencies || {}, clock = d.clock || core.clock, capture = d.capture || core.create();
     var socket = d.socket || require('dgram').createSocket('udp4');
+    var later = d.setTimeout || setTimeout, cancel = d.clearTimeout || clearTimeout;
     var session = (d.randomBytes || require('crypto').randomBytes)(8), sequence = 0;
     var key = new Buffer(config.key_hex || '', 'hex'), running = false, inFlight = false, timer, deadline;
-    var metrics = { captures: 0, sent: 0, errors: 0, consecutive_errors: 0, running: false, profiles: {}, memory: {} };
+    var metrics = { captures: 0, sent: 0, errors: 0, consecutive_errors: 0, running: false,
+        continuous: config.duration_ms === 0, stop_reason: null, profiles: {}, memory: {} };
     function validate() {
         zones.layout(config.zones);
         if (!/^([0-9a-f]{64})$/i.test(config.key_hex || '') || !key.some(function (v) { return v !== 0; })) throw new Error('key');
@@ -14,12 +16,15 @@ exports.create = function (config, dependencies) {
             Number(address[0]) === 0 || Number(address[0]) >= 224 || Number(address[3]) === 255 || Number(address[3]) === 0) throw new Error('unicast IPv4 required');
         if (config.port !== Math.floor(config.port) || config.port < 1024 || config.port > 65535 ||
             config.interval_ms !== Math.floor(config.interval_ms) || config.interval_ms < 500 || config.interval_ms > 10000 ||
-            config.duration_ms !== Math.floor(config.duration_ms) || config.duration_ms < 1000 || config.duration_ms > 3600000 ||
+            config.duration_ms !== Math.floor(config.duration_ms) || (config.duration_ms !== 0 && config.duration_ms < 1000) || config.duration_ms > 3600000 ||
             ['480x270', '320x180', '160x90'].indexOf(config.resolution) === -1 ||
             !(config.edge_depth >= 0.02 && config.edge_depth <= 0.25)) throw new Error('sender configuration');
     }
-    socket.on('error', function () { metrics.errors++; stop(); });
-    function stop() { running = false; metrics.running = false; if (timer) clearTimeout(timer); }
+    socket.on('error', function () { metrics.errors++; stop('socket_error'); });
+    function stop(reason) {
+        if (running) metrics.stop_reason = reason || 'requested';
+        running = false; metrics.running = false; if (timer) cancel(timer);
+    }
     function profile(result) {
         Object.keys(result.profile_ms || {}).forEach(function (name) {
             var value = result.profile_ms[name], stat = metrics.profiles[name] || { count: 0, sum_ms: 0, max_ms: 0 };
@@ -33,14 +38,16 @@ exports.create = function (config, dependencies) {
     }
     function tick() {
         if (!running || inFlight) return;
-        var began = clock(); if (began >= deadline) return stop();
+        var began = clock(); if (began >= deadline) return stop('duration');
         inFlight = true;
         capture({ resolution: config.resolution, hash: false }, function (image) { return zones.summarize(image, config.zones, config.edge_depth); }, function (result) {
             inFlight = false; metrics.captures++; profile(result);
-            if (!running || clock() >= deadline) return stop();
+            if (!running) return;
+            if (clock() >= deadline) return stop('duration');
             if (result.status !== 'ok' || !result.temporary_file_removed) {
                 metrics.errors++; metrics.consecutive_errors++;
-                if (metrics.consecutive_errors >= 3 || !result.temporary_file_removed) return stop();
+                if (!result.temporary_file_removed) return stop('cleanup_error');
+                if (metrics.consecutive_errors >= 3) return stop('capture_errors');
                 schedule(); return;
             }
             try {
@@ -51,15 +58,17 @@ exports.create = function (config, dependencies) {
                 sequence = (sequence + 1) >>> 0;
                 socket.send(packet, 0, packet.length, config.port, config.esp_ip, function (err) {
                     if (err) { metrics.errors++; metrics.consecutive_errors++; } else { metrics.sent++; metrics.consecutive_errors = 0; }
-                    if (metrics.consecutive_errors >= 3) stop();
+                    if (metrics.consecutive_errors >= 3) stop('send_errors');
                     schedule();
                 });
-            } catch (e) { metrics.errors++; metrics.consecutive_errors++; if (metrics.consecutive_errors >= 3) stop(); schedule(); }
+            } catch (e) { metrics.errors++; metrics.consecutive_errors++; if (metrics.consecutive_errors >= 3) stop('frame_errors'); schedule(); }
         });
-        function schedule() { if (running) timer = setTimeout(tick, Math.max(0, config.interval_ms - (clock() - began))); }
+        function schedule() { if (running) timer = later(tick, Math.max(0, config.interval_ms - (clock() - began))); }
     }
     return {
-        start: function () { validate(); if (running || inFlight) throw new Error('already active'); running = true; metrics.running = true; deadline = clock() + config.duration_ms; tick(); },
+        start: function () { validate(); if (running || inFlight) throw new Error('already active'); running = true; metrics.running = true;
+            metrics.stop_reason = null; metrics.consecutive_errors = 0;
+            deadline = config.duration_ms === 0 ? Infinity : clock() + config.duration_ms; tick(); },
         stop: stop,
         close: function () { stop(); socket.close(); },
         busy: function () { return inFlight; },

@@ -44,5 +44,7 @@ esp_err_t ambi_wifi_start(const ambi_config_t *c) {
     ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA),"wifi","mode");
     ESP_RETURN_ON_ERROR(esp_wifi_set_config(WIFI_IF_STA,&wifi),"wifi","config");
     if(xTaskCreate(reconnect_task,"ambi_wifi",4096,NULL,3,NULL)!=pdPASS)return ESP_ERR_NO_MEM;
-    return esp_wifi_start();
+    ESP_RETURN_ON_ERROR(esp_wifi_start(),"wifi","start");
+    // Mains/USB-powered color receiver: avoid DTIM sleep latency on live frames.
+    return esp_wifi_set_ps(WIFI_PS_NONE);
 }

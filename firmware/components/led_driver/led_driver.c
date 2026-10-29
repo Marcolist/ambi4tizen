@@ -1,12 +1,18 @@
 #include "ambi_led.h"
 #include "led_strip.h"
 #include "driver/spi_master.h"
+#include "sdkconfig.h"
+#include "gpio_policy.h"
 static led_strip_handle_t strip;
 static unsigned length;
-/* Classic ESP32 pins: exclude strapping, UART0, flash and input-only pins. */
 static bool safe_gpio(int pin) {
-    return pin==4 || (pin>=13 && pin<=14) || (pin>=18 && pin<=19) ||
-        (pin>=21 && pin<=23) || (pin>=25 && pin<=27) || pin==32 || pin==33;
+#if CONFIG_IDF_TARGET_ESP32S3
+    return ambi_gpio_allowed(pin, true);
+#elif CONFIG_IDF_TARGET_ESP32
+    return ambi_gpio_allowed(pin, false);
+#else
+    return false;
+#endif
 }
 esp_err_t ambi_led_init(const ambi_config_t *c) {
     if(!c->output_enabled) return ESP_OK;

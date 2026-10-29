@@ -20,9 +20,11 @@ image.save(output/'fixture.jpg',quality=95,subsampling=0)
 key=bytes(range(32));keyfile=output/'test-psk.hex';keyfile.write_text(key.hex()+'\n');keyfile.chmod(0o600)
 node=os.environ.get('AMBI_NODE','node')
 subprocess.run([node,'test/test_tv.js'],check=True)
+subprocess.run([node,'test/test_sender_lifecycle.js'],check=True)
 old=ROOT/'.local/node-v4.4.3-linux-x64/bin/node'
 if old.exists() and str(old)!=node:
     subprocess.run([str(old),'test/test_tv.js'],check=True)
+    subprocess.run([str(old),'test/test_sender_lifecycle.js'],check=True)
 else:
     print('Node 4.4.3 compatibility run skipped: local runtime missing')
 spec=importlib.util.spec_from_file_location('pattern',ROOT/'tools/pattern_sender.py');pattern=importlib.util.module_from_spec(spec);spec.loader.exec_module(pattern)

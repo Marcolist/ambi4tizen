@@ -52,5 +52,25 @@ class Configuration(unittest.TestCase):
     def test_utf8_c_string(self):
         self.assertEqual(configure.c_string('ä"\\'), '"\\303\\244\\042\\134"')
 
+    def test_continuous_duration_is_explicit(self):
+        for value in (0, 1000, 3600000):
+            self.data['sender']['duration_ms']=value
+            self.assertEqual(self.load(self.data)['sender']['duration_ms'],value)
+        for value in (-1, True, 1, 999, 3600001, 0.5):
+            self.data['sender']['duration_ms']=value
+            with self.subTest(value=value), self.assertRaises(ValueError):self.load(self.data)
+
+    def test_target_pin_exclusions(self):
+        fw=self.data['firmware']
+        fw.update(leds_left=2,leds_top=3,leds_right=4,output_enabled=True,gpio=18)
+        self.data['target']='esp32s3'
+        for pin in (0,3,19,20,22,26,32,33,37,43,44,45,46):
+            fw['gpio']=pin
+            with self.subTest(pin=pin), self.assertRaises(ValueError):self.load(self.data)
+        fw['gpio']=21
+        self.assertTrue(self.load(self.data)['firmware']['output_enabled'])
+        self.data['target']='esp32c6'
+        with self.assertRaises(ValueError):self.load(self.data)
+
 
 if __name__=='__main__':unittest.main()
