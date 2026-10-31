@@ -1,0 +1,4 @@
+cadquery==2.6.1
+trimesh==5.2.0
+networkx==3.7
+matplotlib==3.11.2

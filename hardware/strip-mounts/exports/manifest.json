@@ -1,0 +1,135 @@
+{
+  "units": "mm",
+  "status": "dimensioned prototype, physical fit unverified",
+  "parameters": {
+    "strip_width_mm": 12.0,
+    "width_clearance_mm": 0.8,
+    "rail_length_mm": 180.0,
+    "base_width_mm": 16.8,
+    "base_thickness_mm": 2.4,
+    "wall_thickness_mm": 2.4,
+    "lower_lip_mm": 0.8,
+    "corner_seat_radius_mm": 50.0,
+    "key_width_mm": 7.6,
+    "key_socket_width_mm": 8.0,
+    "hook_clear_gap_mm": 35.0,
+    "hook_rear_drop_mm": 60.0,
+    "hook_front_return_mm": 5.0,
+    "hook_wall_mm": 4.0,
+    "hook_width_mm": 12.0,
+    "maximum_part_extent_mm": 200.0
+  },
+  "derived": {
+    "seat_width_mm": 12.8,
+    "seat_height_from_base_mm": 16.0,
+    "adhesive_seat_corner_radius_mm": 50.0,
+    "corner_arc_length_mm": 78.53981633974483,
+    "key_socket_floor_z_mm": 3.8,
+    "key_installed_top_z_mm": 5.8,
+    "joint_screw_tip_z_mm": 0.7999999999999998,
+    "hook_fit_verified": false,
+    "strip_bend_specification_verified": false
+  },
+  "parts": {
+    "rail_90_180": {
+      "dimensions_mm": [
+        180.0,
+        16.8,
+        16.0
+      ],
+      "solid_volume_cm3": 13.739,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "rail_90_120": {
+      "dimensions_mm": [
+        120.0,
+        16.8,
+        16.0
+      ],
+      "solid_volume_cm3": 9.323,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "rail_90_60": {
+      "dimensions_mm": [
+        60.0,
+        16.8,
+        16.0
+      ],
+      "solid_volume_cm3": 4.907,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "fit_coupon_90_40": {
+      "dimensions_mm": [
+        40.0,
+        16.8,
+        16.0
+      ],
+      "solid_volume_cm3": 3.435,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "corner_90_r50": {
+      "dimensions_mm": [
+        50.8,
+        50.8,
+        16.0
+      ],
+      "solid_volume_cm3": 5.75,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "joint_key_standard": {
+      "dimensions_mm": [
+        28.0,
+        7.6,
+        2.0
+      ],
+      "solid_volume_cm3": 0.389,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "joint_key_loose": {
+      "dimensions_mm": [
+        28.0,
+        7.4,
+        2.0
+      ],
+      "solid_volume_cm3": 0.378,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "sample_45_60": {
+      "dimensions_mm": [
+        60.0,
+        16.8,
+        11.451
+      ],
+      "solid_volume_cm3": 4.877,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    },
+    "top_hook_gap35_PROVISIONAL": {
+      "dimensions_mm": [
+        43.0,
+        64.0,
+        12.0
+      ],
+      "solid_volume_cm3": 5.011,
+      "watertight": true,
+      "single_solid": true,
+      "step_roundtrip": true
+    }
+  },
+  "assembly_interference_check": "passed"
+}

@@ -305,6 +305,17 @@ has not yet been verified in practice. If the normal uninstaller refuses,
 remove the app through the TV's app management UI; do not use force/root methods.
 See [Samsung's troubleshooting guide](https://developer.samsung.com/smarttv/develop/getting-started/using-sdk/tv-device.html).
 
+## 3D-printable strip mounts
+
+A [modular mount prototype](hardware/strip-mounts/README.md) is supplied for a
+12 mm self-adhesive strip. The main design uses 90° outward-facing rails and
+R50 cylindrical corners to avoid compound strip bending. Individual parts are
+180 mm or shorter, with drop-in keys secured by glue or short M3 screws.
+STL, editable STEP, a dimensioned drawing and a 45° comparison coupon are included.
+Tape attachment is supported; the optional top-edge hook needs actual TV
+measurements before use. Physical fit, bend compatibility and light distribution
+are unverified. Mounting screws join printed parts rather than the TV housing.
+
 ## Documentation
 
 | Document | Contents |
@@ -317,6 +328,7 @@ See [Samsung's troubleshooting guide](https://developer.samsung.com/smarttv/deve
 | [Hardware test](docs/esp32-hardware-test.txt) | Power and wiring checks |
 | [Live-test preparation](docs/live-test.md) | Continuous sender and front-view bottom-right LED mapping |
 | [Adaptive transitions](docs/adaptive-smoothing.md) | Palette-change heuristic, smooth/fast response and receiver diagnostics |
+| [3D strip mounts](hardware/strip-mounts/README.md) | 12 mm strip rails, R50 corners, connectors, optional hook and print files |
 | [Future C6/Zigbee support](docs/esp32-c6-phase2.txt) | Prepared architecture and SDK review |
 | [Capture diagnostic](poc/README.md) | Bounded baseline test |
 

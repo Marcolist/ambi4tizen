@@ -1,0 +1,18 @@
+{
+  "strip_width_mm": 12.0,
+  "width_clearance_mm": 0.8,
+  "rail_length_mm": 180.0,
+  "base_width_mm": 16.8,
+  "base_thickness_mm": 2.4,
+  "wall_thickness_mm": 2.4,
+  "lower_lip_mm": 0.8,
+  "corner_seat_radius_mm": 50.0,
+  "key_width_mm": 7.6,
+  "key_socket_width_mm": 8.0,
+  "hook_clear_gap_mm": 35.0,
+  "hook_rear_drop_mm": 60.0,
+  "hook_front_return_mm": 5.0,
+  "hook_wall_mm": 4.0,
+  "hook_width_mm": 12.0,
+  "maximum_part_extent_mm": 200.0
+}
