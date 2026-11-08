@@ -27,7 +27,7 @@ service.on('message', function (msg) {
 });
 function run() {
     var broker = require('../tv/persistent-broker').create({ address: address,
-        client: function (opts) { connections++; return dbus.createClient(opts); } });
+        client: function (opts) { connections++; return require('../tv/fixed-dbus').createClient(opts); } });
     function next() {
         broker.call({ width: 160, height: 90, quality: 35, basename: 'synthetic-' + calls }, function (bad, values) {
             assert.ifError(bad); assert.deepEqual(values.slice(0, 3), [0,160,90]);

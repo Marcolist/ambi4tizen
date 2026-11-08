@@ -14,7 +14,7 @@ build=root/'poc/build/sender'
 if build.exists():
     shutil.rmtree(build)
 build.mkdir(parents=True)
-for name in ['config.xml','index.html','sender.js','protocol.js','zones.js','capabilities.js','native-decoder.js','persistent-broker.js']:
+for name in ['config.xml','index.html','sender.js','protocol.js','zones.js','capabilities.js','fixed-dbus.js','native-decoder.js','persistent-broker.js']:
     shutil.copyfile(root/'tv'/name,build/name)
 for name in ['icon.svg','capture-core.js']:
     shutil.copyfile(root/'poc/web-probe'/name,build/name)
@@ -34,17 +34,12 @@ if worker.is_file():
     if not (licenses/'README.ijg').exists():
         raise RuntimeError('Native worker licenses missing; run tools/build_native.py')
     shutil.copytree(licenses,build/'native/licenses')
-modules=Path(os.environ.get('AMBI_TV_NODE_MODULES',str(root/'.local/tv-node/node_modules')))
-if modules.is_dir():
-    shutil.copytree(modules,build/'node_modules',ignore=shutil.ignore_patterns('.bin','test','tests','examples','.github','build'))
 config=None
 if PRIVATE.exists():
     data=load_config()
     config=dict(data['sender'],key_hex=data['key_hex'],diagnostic_token=data['api_token'])
     if config.get('decoder') == 'native' and not worker.is_file():
         raise RuntimeError('Strict native decoder requested but ARM worker is missing')
-    if config.get('broker') == 'persistent' and not (modules/'dbus-native/package.json').is_file():
-        raise RuntimeError('Strict persistent broker requested but dependencies are missing')
 code=(root/'tv/service.js').read_text().replace('/*__SENDER_CONFIG__*/null',json.dumps(config))
 assert '/*__SENDER_CONFIG__*/' not in code
 (build/'service.js').write_text(code)

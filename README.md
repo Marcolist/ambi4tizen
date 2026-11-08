@@ -51,17 +51,30 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | Internal streaming apps | Changing colors in limited Netflix, Prime Video and Disney+ tests; no universal codec/HDR guarantee |
 | TV color plausibility | Live RGB zones were judged plausible by the operator; the prototype photo shows corresponding blue/green backlighting. Color accuracy has not been calibrated |
 | New TV sender | Continuous operation tested on the TV; one 70-second post-update window delivered 70/70 frames to the S3 without new invalid/stale packets or sender errors; long-term reliability unverified |
-| Faster capture target | Experimental 100-ms target delivered about 4.47 sends/s in a short live window; the earlier 250-ms target delivered about 3.83/s. Physical LED latency and playback need separate checks |
-| Optional faster paths | Native scaled JPEG decoder, persistent D-Bus and bounded capture/decode pipeline implemented on `codex/faster-refreshes`; local tests pass, TV live validation pending. [Build and live gate](docs/faster-refreshes.md) |
+| Faster capture target | Experimental 100-ms target; full decoding measured about 4.6 sends/s and the accepted DC preview about 5.8–5.9/s. The target does not guarantee 10 frames/s; physical LED latency in milliseconds is unmeasured |
+| Optional faster paths | DC block-mean decoding passed a short TV live test: about 5.8–5.9 sends/s and 166-ms sampled median capture-to-send age; operator confirmed faster response, plausible colors and correct top lighting with black bars. Native/persistent-bus paths remain unavailable on the tested setup. [Results and settings](docs/faster-refreshes.md) |
 | Adaptive transitions | Classic ESP32 receiver runs up to 80-ms normal / 25-ms fast smoothing; software paths observed in diagnostics, visible transition quality still needs checking |
 | ESP32 firmware | Classic ESP32 Arduino / Adafruit NeoPixel 1.12.3 passed a visible weak-red test on 83 LEDs / GPIO18; [reproducible build](firmware/README.md#tested-classic-esp32-arduino-build). ESP-IDF SPI remains an alternative without confirmed visible output on this setup |
-| Visible end-to-end test | Multicolor LED output demonstrated in the owner-provided prototype photo; physical latency, letterbox behavior, transition quality and long-duration reliability still need separate validation |
+| Visible end-to-end test | Multicolor output demonstrated in the prototype photo; the operator also confirmed faster response, plausible colors and top-strip behavior with black bars using the DC preview. Long-duration reliability and physical latency measurements remain open |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
 
 The TV sender and LED output are disabled by default. The software uses an
 existing Samsung capture service that is not publicly documented. Other models
 and firmware versions are untested. No root access, firmware modifications,
 system-file changes or DRM bypass are part of this project.
+
+## Tested faster TV profile
+
+On the tested Tizen 4 TV, the optional `js-dc` decoder reconstructs coarse JPEG
+block averages for the LED zones. The accepted private sender settings are
+`decoder=js-dc`, `jpeg_quality=55`, `broker=process`, `pipeline=false`,
+`resolution=480x270`, `interval_ms=100`, `duration_ms=0`. Apply them inside the
+existing private sender object only after initial installation works, then
+rebuild/reinstall. Preserve credentials and addresses. Initial disabled defaults
+are unchanged. This mode needs no new ESP firmware.
+
+DC preview intentionally discards fine detail. The visible check passed on one
+setup, not every image/app/model. See [measurements, tradeoffs and limitations](docs/faster-refreshes.md).
 
 ## Run local tests without a TV or LEDs
 
@@ -237,10 +250,10 @@ left upward, six across the top from left to right, and three down the right,
 **viewed from the front of the TV**. Compare these edge colors with the visible
 image. This averages regions of the image; it does not return a screenshot.
 
-The operator confirmed that a sampled live palette was plausible against the
-TV image. The receiver was in AUTO with an active stream and an initialized
-91-pixel driver. The commissioned configuration allows 255/255 brightness;
-visible LED colors, physical placement and full-load power remain unverified.
+The operator confirmed plausible live colors against the TV image, including
+the accepted DC preview. The current commissioned receiver is a classic ESP32
+with 83 LEDs, AUTO mode and 255/255 configured brightness. Physical mounting
+and full-load power performance remain separate hardware checks.
 Interpolation, gamma and smoothing also affect the expected LED output, so
 raw zone RGB values are not final LED drive values. Full configured brightness
 still follows the brightness and colors of the sampled image regions.
@@ -281,13 +294,16 @@ separate checking.
 
 The new sender samples the active picture inside paired horizontal black bars,
 with hysteresis for fades/subtitles. This prevents a letterboxed movie from
-forcing the top strip dark. Synthetic/JPEG tests pass and the package is installed;
-a confirmed letterboxed movie and visible LED check are pending.
+forcing the top strip dark. Synthetic/JPEG tests pass; the operator also
+confirmed that the upper LEDs follow picture colors with black bars present
+using the installed DC preview.
 See [letterbox sampling](tv/README.md#letterbox-content-sampling).
 
-On the tested TV, requesting 320×180 still returned a decoded 480×270 image
-and did not improve the comparison. Check `last_sent.width` and `height`
-before assuming that a requested resolution was honored.
+On the tested TV, both 320×180 and 160×90 requests still returned a 480×270
+source JPEG. Check `last_sent.source_width` and `source_height` before assuming
+a capture request was honored. With DC preview, `width` and `height` instead
+report its reconstructed 60×34 image; source capture size and decode size are
+separate measurements.
 
 These timings start at the software capture request and end before packet
 encoding/UDP transport. They do not measure visible screen-to-LED delay.

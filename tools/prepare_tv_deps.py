@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install pinned optional TV dependencies privately, without npm lifecycle scripts."""
+"""Install pinned optional D-Bus test fixtures privately, without npm lifecycle scripts."""
 from pathlib import Path
 import json
 import shutil
@@ -29,4 +29,4 @@ parser.write_text(source)
     'dbus-native': '0.4.0', 'npm_scripts': False, 'optional_native_modules': False,
     'parser_max_header_bytes': 65536, 'parser_max_body_bytes': 65536,
 }, indent=2) + '\n')
-print('Pinned TV dependencies prepared privately; abstract sockets and unixexec are not used.')
+print('Pinned private D-Bus test fixtures prepared; production has no npm runtime dependencies.')

@@ -21,6 +21,14 @@ PROFILES = {
                     broker='process', decode_scale=1, pipeline=False),
     'size': dict(jpeg_quality=35, resolution='160x90', decoder='js',
                  broker='process', decode_scale=1, pipeline=False),
+    'pipeline-js': dict(jpeg_quality=55, resolution='480x270', decoder='js',
+                        broker='process', decode_scale=1, pipeline=True),
+    'dc': dict(jpeg_quality=55, resolution='480x270', decoder='js-dc',
+              broker='process', decode_scale=1, pipeline=False),
+    'dc35': dict(jpeg_quality=35, resolution='480x270', decoder='js-dc',
+                broker='process', decode_scale=1, pipeline=False),
+    'dc-pipeline': dict(jpeg_quality=55, resolution='480x270', decoder='js-dc',
+                       broker='process', decode_scale=1, pipeline=True),
     'native': dict(jpeg_quality=35, resolution='160x90', decoder='native',
                    broker='process', decode_scale=4, pipeline=False),
     'bus': dict(jpeg_quality=35, resolution='160x90', decoder='native',
@@ -99,7 +107,7 @@ def main():
     def request(host, port, route):
         req = urllib.request.Request('http://' + host + ':' + str(port) + '/' + route,
                                      headers={'Authorization': 'Bearer ' + original['api_token']})
-        with urllib.request.urlopen(req, timeout=5) as response:
+        with urllib.request.urlopen(req, timeout=8 if route == 'capabilities' else 5) as response:
             return json.loads(response.read(65536))
 
     changed = False

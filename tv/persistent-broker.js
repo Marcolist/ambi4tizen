@@ -27,13 +27,13 @@ exports.create = function (dependencies) {
                 timer: setTimeout(function () { finish(new Error('persistent_timeout')); }, 3500) };
             try {
                 if (!bus) {
-                    bus = (d.client || require('dbus-native').createClient)({
-                        busAddress: d.address || 'unix:path=/var/run/dbus/system_bus_socket',
+                    bus = (d.client || require('./fixed-dbus').createClient)({
+                        busAddress: d.address || require('./fixed-dbus').systemAddress(),
                         authMethods: ['EXTERNAL'], direct: true
                     });
                     bus.connection.on('error', function () { finish(new Error('persistent_connection')); });
                     bus.connection.on('end', function () { if (!closing) finish(new Error('persistent_closed')); });
-                    // Handle Hello ourselves: upstream's automatic Hello throws on an error.
+                    // Complete Hello before submitting capture; errors here permit safe fallback.
                     bus.invokeDbus({ member: 'Hello' }, function (err, name) {
                         if (err) return finish(new Error('persistent_hello'));
                         if (!bus || disabled) return;

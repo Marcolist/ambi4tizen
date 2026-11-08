@@ -3,7 +3,8 @@
 The existing service's proven capture call remains the foundation. The new
 `ambiSend40` app is a separately built UDP sender with a configurable time limit, disabled by default.
 Visible multicolor output has been demonstrated with the baseline sender. The
-optional faster paths on `codex/faster-refreshes` still require a TV live test. Setup:
+selected DC preview has now passed a bounded TV live test; the native and
+persistent-bus alternatives remain unvalidated/unavailable on this setup. Setup:
 [main README](../README.md). The diagnostic package remains separate.
 
 The shared capture core is `poc/web-probe/capture-core.js`. During packaging,
@@ -36,7 +37,7 @@ Create the private file/header as described in the
 | interval_ms | 1000 by default; experimental minimum 100; target cadence, not a frame-rate guarantee |
 | duration_ms | 30000 by default; 0 explicitly selects continuous operation; otherwise 1000–3600000 |
 | jpeg_quality | 55 by default; integer 20–90; compare 35 for lower JPEG cost |
-| decoder | `js` (default), `native` (strict), or `auto` (native with JS fallback) |
+| decoder | `js` (default), `js-dc` (coarse block means), `native` (strict), or `auto` (native with JS fallback) |
 | decode_scale | Native decode denominator 1, 2, 4 or 8; default 1; reduced if either side would become smaller than 24 pixels |
 | broker | `process` (default), `persistent` (strict), or `auto` (persistent with process fallback) |
 | pipeline | `false` by default; one-frame lookahead during decoding, with bounded buffers |
@@ -48,7 +49,7 @@ python3 tools/build_sender.py
 The build uses locally configured Samsung/Tizen SDK signing tools and a local
 .NET SDK **on the development computer only**. The TV package contains HTML,
 ES5/Node code and the existing licensed JPEG decoder. Optional local builds
-add the ARM worker and pinned D-Bus JavaScript dependencies. Output:
+add the ARM worker. The fixed ES5 D-Bus client has no npm runtime dependencies. Output:
 `poc/build/ambilight-sender.wgt`. Without private configuration, the package is
 signed but its service performs no work on startup. Private keys are written
 only into the ignored local package. Building does not install or contact the TV.
@@ -114,7 +115,8 @@ sampling. Only nearly symmetric horizontal bars up to about 24% per side are
 handled. Asymmetric, colored, very large or vertical bars are not detected.
 This is a conservative pixel heuristic, not a content/aspect-ratio API. Local
 synthetic/JPEG tests pass under Node 4.4.3. The updated package is installed on
-the test TV; a user-confirmed letterboxed scene and visible LED check are pending.
+the test TV; the operator confirmed that the top strip follows picture colors in a
+letterboxed scene with the accepted DC preview.
 
 HTTP 18793 accepts only the private developer IP and bearer token.
 `GET /status` returns aggregate timings for broker, file read, JPEG decode,
@@ -153,23 +155,24 @@ Investigate boot startup only after a visible end-to-end success. Currently the
 app must be started deliberately. Reliable background startup when the TV turns
 on remains unresolved; manifest options alone do not prove it works.
 
-## Optional faster paths (live validation pending)
+## Optional faster paths
 
 See [refresh optimization and live gate](../docs/faster-refreshes.md) for the
 implementation, limitations, comparison commands and rollback procedure.
 
-Prerequisites: Python 3.12+, CMake, a host C compiler, npm and, for the TV binary,
+Prerequisites: Python 3.12+, CMake, a host C compiler and, for the TV binary,
 `arm-linux-gnueabihf-gcc` with its cross libc development files. Preparation
 runs only on the development computer; it does not contact or modify the TV.
 
 ```sh
 python3 tools/build_native.py --target host
 python3 tools/build_native.py --target armv7
-python3 tools/prepare_tv_deps.py
 python3 tools/build_sender.py
 ```
 
 The worker statically links pinned libjpeg-turbo 3.2.1 and requires ARMv7/NEON.
+For the optional local private-bus test fixture only, run
+`python3 tools/prepare_tv_deps.py` (requires npm).
 The package builder verifies ARM architecture, binary hash and worker source
 hash. Source downloads, dependencies, licenses and binaries remain in `.local`.
 The package includes upstream licenses. This software is based in part on the
@@ -188,3 +191,61 @@ Raw RGB capture is not implemented: the inspected normal broker's proven
 synchronous file method returns JPEG. Other asynchronous/XWD methods do not
 provide a verified usable raw buffer in this application context. `comp_type`
 is composition selection, not a JPEG/raw format switch; it remains 1.
+
+### First TV preflight on the optimization branch
+
+The worker self-test is currently blocked with `spawn EACCES` in the installed
+web package, and its mode cannot be changed (`chmod EACCES`). This is not a
+successful native-decode deployment. The tested app namespace exposes none of
+`/run/dbus/system_bus_socket`, `/var/run/dbus/system_bus_socket` or
+`/opt/var/run/dbus/system_bus_socket`. The advertised session address uses a
+kernel kdbus endpoint with a Unix fallback; that does not establish an available
+system-bus Unix transport. The fixed client reports `ENOENT` and `auto` uses
+`dbus-send` instead. No kernel transport, security-policy change or native
+execution workaround is implemented.
+
+An attempted separate Node probe was also rejected by the TV's signature
+checks. Production preflight now uses the fixed ES5 client directly with bounded
+parsing and error handling; it launches no separate Node script. The initial
+third-party D-Bus preflight terminated the sender process on this TV; its cause
+was not established. That dependency is no longer loaded or packaged by the
+production sender. It remains only a synthetic service fixture in local tests.
+
+The final fixed preflight also tests a bounded temporary copy of the worker in
+this app's own data directory after resource execution fails. The copy uses
+exclusive creation, is removed after the test and exposes no arbitrary paths.
+On this TV execution there returned `EPERM` as well, with cleanup confirmed.
+The measured candidate uses quality 55 and the existing JS/process backends
+with pipeline enabled: about 6.67 versus 4.56 sends/s in sequential 30-second
+windows. Median capture-to-send age rose from 208 to 233 ms; physical delay
+improvement has not been demonstrated. See the full comparison and limitations
+in the [refresh report](../docs/faster-refreshes.md#measured-tv-comparison-november-8-2026).
+
+## Optional JavaScript DC preview
+
+DC mode needs no native build or npm dependency: select `decoder=js-dc` in the
+existing private configuration, then use the normal sender build/install.
+It retains JPEG entropy/progressive parsing and limits but replaces
+full pixel reconstruction with the dequantized DC mean of each 8x8 component
+block. It produces a coarse RGB preview (60x34 for a 480x270 JPEG) before zone
+sampling, avoiding full IDCT and most color-conversion work. It is approximate
+for LED colors: fine detail is intentionally dropped, chroma is coarser with
+subsampled JPEGs, and saturated/clipped edges can differ from full decoding.
+It is not an image-export feature or a native helper workaround.
+
+Both source dimensions must be at least 192 pixels; smaller images and CMYK
+retain full decoding so zone dimensions stay valid. Status distinguishes
+`js-dc` from full `js`, and preserves original `source_width`/`source_height`.
+The ordinary `js` default is unchanged. Tests cover baseline/progressive JPEG,
+grayscale, chroma subsampling, odd/minimum dimensions, edge-color averages,
+small-image fallback and letterbox sampling under Node 4.4.3. The modified
+upstream decoder and its attribution remain under the included Apache terms.
+
+After the pipeline-only candidate still had objectionable visible delay, the
+next installed candidate selects `decoder=js-dc`, `jpeg_quality=55`,
+`broker=process`, `pipeline=false`, `resolution=480x270`, `interval_ms=100` and
+`duration_ms=0`. It delivered about 5.9 sends/s and 166-ms sampled median age in
+one short comparison. The operator subsequently confirmed noticeably faster response, plausible
+colors and correct top-strip behavior with black bars. A further 60-second
+window had no new sender/receiver errors. This is bounded acceptance, not a
+physical latency guarantee or long-term reliability result.

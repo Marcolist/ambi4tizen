@@ -21,7 +21,7 @@ exports.create = function (config, dependencies) {
             ['480x270', '320x180', '160x90'].indexOf(config.resolution) === -1 ||
             !(config.edge_depth >= 0.02 && config.edge_depth <= 0.25)) throw new Error('sender configuration');
         if (config.jpeg_quality !== undefined && (config.jpeg_quality !== Math.floor(config.jpeg_quality) || config.jpeg_quality < 20 || config.jpeg_quality > 90) ||
-            config.decoder !== undefined && ['js','native','auto'].indexOf(config.decoder) === -1 ||
+            config.decoder !== undefined && ['js','js-dc','native','auto'].indexOf(config.decoder) === -1 ||
             config.broker !== undefined && ['process','persistent','auto'].indexOf(config.broker) === -1 ||
             config.decode_scale !== undefined && [1,2,4,8].indexOf(config.decode_scale) === -1 ||
             config.pipeline !== undefined && typeof config.pipeline !== 'boolean') throw new Error('capture configuration');

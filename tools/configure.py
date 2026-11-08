@@ -67,7 +67,7 @@ def load_config(path=PRIVATE):
     for name,lo,hi in [('jpeg_quality',20,90)]:
         if name in sender and (type(sender[name]) is not int or not lo <= sender[name] <= hi):
             raise ValueError(name)
-    for name,choices in [('decoder',('js','native','auto')),('broker',('process','persistent','auto'))]:
+    for name,choices in [('decoder',('js','js-dc','native','auto')),('broker',('process','persistent','auto'))]:
         if name in sender and sender[name] not in choices:
             raise ValueError(name)
     if 'decode_scale' in sender and (type(sender['decode_scale']) is not int or sender['decode_scale'] not in (1,2,4,8)):

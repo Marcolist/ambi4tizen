@@ -1,4 +1,5 @@
-// Local changes: ES5 syntax for Samsung Tizen 4 Node 4.4.3; decoder behavior unchanged.
+// Local changes: ES5 syntax; optional DC block-average preview for LED sampling.
+// Preview modifications Copyright 2026 Ambi4Tizen contributors (Apache-2.0).
 /* -*- tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- /
 /* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /*
@@ -353,6 +354,21 @@ var JpegImage = (function jpegImage() {
     }
 
     return offset - startOffset;
+  }
+
+  function buildComponentPreview(component) {
+    var lines = [], width = component.blocksPerLine, height = component.blocksPerColumn;
+    requestMemoryAllocation(width * height);
+    for (var y = 0; y < height; y++) {
+      var line = new Uint8Array(width);
+      for (var x = 0; x < width; x++) {
+        // JPEG DC is eight times the level-shifted 8x8 block mean.
+        var value = Math.round(component.blocks[y][x][0] * component.quantizationTable[0] / 8 + 128);
+        line[x] = value < 0 ? 0 : value > 255 ? 255 : value;
+      }
+      lines.push(line);
+    }
+    return lines;
   }
 
   function buildComponentData(frame, component) {
@@ -864,17 +880,22 @@ var JpegImage = (function jpegImage() {
       this.jfif = jfif;
       this.adobe = adobe;
       this.components = [];
+      // Keep small/CMYK images on the complete decoder. The zone sampler needs
+      // both dimensions >=24 and this preview deliberately retains only DC.
+      this.previewScale = this.opts.dcPreview && this.width >= 192 && this.height >= 192 &&
+        (frame.componentsOrder.length === 1 || frame.componentsOrder.length === 3) ? 8 : 1;
       for (var i = 0; i < frame.componentsOrder.length; i++) {
         var component = frame.components[frame.componentsOrder[i]];
         this.components.push({
-          lines: buildComponentData(frame, component),
-          scaleX: component.h / frame.maxH,
-          scaleY: component.v / frame.maxV
+          lines: this.previewScale === 8 ? buildComponentPreview(component) : buildComponentData(frame, component),
+          scaleX: component.h / frame.maxH / this.previewScale,
+          scaleY: component.v / frame.maxV / this.previewScale
         });
       }
     },
     getData: function getData(width, height) {
-      var scaleX = this.width / width, scaleY = this.height / height;
+      var scaleX = this.previewScale > 1 ? this.previewScale : this.width / width;
+      var scaleY = this.previewScale > 1 ? this.previewScale : this.height / height;
 
       var component1, component2, component3, component4;
       var component1Line, component2Line, component3Line, component4Line;
@@ -1105,6 +1126,7 @@ function decode(jpegData, userOpts) {
     useTArray: false,
     formatAsRGBA: true,
     tolerantDecoding: true,
+    dcPreview: false,
     maxResolutionInMP: 100, // Don't decode more than 100 megapixels
     maxMemoryUsageInMB: 512, // Don't decode if memory footprint is more than 512MB
   };
@@ -1121,12 +1143,14 @@ function decode(jpegData, userOpts) {
   decoder.parse(arr);
 
   var channels = (opts.formatAsRGBA) ? 4 : 3;
-  var bytesNeeded = decoder.width * decoder.height * channels;
+  var outputWidth = Math.ceil(decoder.width / decoder.previewScale);
+  var outputHeight = Math.ceil(decoder.height / decoder.previewScale);
+  var bytesNeeded = outputWidth * outputHeight * channels;
   try {
     JpegImage.requestMemoryAllocation(bytesNeeded);
     var image = {
-      width: decoder.width,
-      height: decoder.height,
+      width: outputWidth,
+      height: outputHeight,
       exifBuffer: decoder.exifBuffer,
       data: opts.useTArray ?
         new Uint8Array(bytesNeeded) :
@@ -1151,6 +1175,11 @@ function decode(jpegData, userOpts) {
   }
 
   decoder.copyToImageData(image, opts.formatAsRGBA);
+
+  if (opts.dcPreview) {
+    image.source_width = decoder.width; image.source_height = decoder.height;
+    image.preview_scale = decoder.previewScale;
+  }
 
   return image;
 }

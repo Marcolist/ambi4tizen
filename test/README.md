@@ -90,7 +90,7 @@ renders of the same frame so the speed does not revert midway through a fade.
 ## Optional refresh-path checks
 
 Build the optional worker and D-Bus dependencies before the full suite to enable
-all checks (see [TV build instructions](../tv/README.md#optional-faster-paths-live-validation-pending)).
+all checks (see [TV build instructions](../tv/README.md#optional-faster-paths)).
 Missing optional workers/dependencies are reported as skipped. With the D-Bus
 dependencies installed, `dbus-run-session` must be available for the private-bus
 test. The suite never connects to the machine's system bus.
@@ -98,12 +98,26 @@ test. The suite never connects to the machine's system bus.
 Additional checks cover persistent native decoding and scale/color accuracy,
 malformed-JPEG recovery, bounded protocol input, one-child reuse, cancellation,
 one-frame pipeline bounds, no overlapping broker calls, stop/drain behavior,
-slow-cadence freshness and automatic JS fallback. A real private session bus
-handles five synthetic fixed capture calls on one connection under current
+slow-cadence freshness and automatic JS fallback. A real private session bus and a third-party synthetic service fixture
+handle five fixed capture calls from the production ES5 client on one connection under current
 Node and Node 4.4.3. Failure tests distinguish safe pre-submission fallback from
-unsafe duplicate capture after submission. Benchmark tests ensure credentials
+unsafe duplicate capture after submission. A synthetic Unix peer also tests
+fragmented replies, authentication rejection, oversized lengths, unsupported
+protocol versions and malformed variants/strings. Benchmark tests ensure credentials
 are preserved and frame rate is derived from counters rather than poll samples.
 
 The ARM helper is also built and can be smoke-tested with QEMU, but these tests
 do not prove Tizen executable permissions, NEON availability or direct D-Bus
 access. The [live gate](../docs/faster-refreshes.md) remains separate.
+
+Capability tests also simulate callback and synchronous Tizen spawn denials,
+exclusive temporary worker creation in own app data, cleanup after denied
+execution and a non-writable data directory. They do not execute an untrusted
+file or alter system permissions.
+
+DC-preview tests compare edge-color means against full decoding on baseline,
+progressive, grayscale, chroma-subsampled, odd-sized and minimum-size synthetic
+JPEGs, exercise full-decoder fallback for small inputs and confirm letterbox
+sampling. Default full decode was also compared against the previous decoder
+on five synthetic fixtures and remained pixel-identical. Approximate color
+accuracy and TV latency still require live checks.

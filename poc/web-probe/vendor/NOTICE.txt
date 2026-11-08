@@ -3,5 +3,6 @@ Source: https://github.com/jpeg-js/jpeg-js/blob/9ccd35fb5f55a6c4f1902ac5b0f270f6
 Upstream blob: 1982481806e5fe29bd38cb008297f35731ade20b
 Decoder header: Copyright 2011 notmasteryet, Apache-2.0.
 Package license: Copyright 2014 Eugene Ware, BSD-3-Clause.
-Local modification: replace two default parameters, object spread, three template strings and one block-scoped constant with ES5 equivalents. No decoder algorithm changes.
+Local syntax modification: replace two default parameters, object spread, three template strings and one block-scoped constant with ES5 equivalents.
+Optional algorithm modification (2026 Ambi4Tizen contributors, Apache-2.0): dcPreview=true reconstructs a 1/8-size block-average preview from dequantized DC coefficients, retaining full entropy/progressive parsing and limits. Small/CMYK images use the complete decoder. Default decoding remains unchanged. This preview drops AC detail and is intended only for coarse LED color sampling, not image export.
 Whitespace normalization: trailing spaces and final blank lines removed from decoder and package license; license wording unchanged.

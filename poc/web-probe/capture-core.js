@@ -113,9 +113,10 @@ exports.create = function (dependencies) {
             }
             function javascript() {
                 var image;
-                try { image = decode(jpeg, { useTArray: true, formatAsRGBA: false, tolerantDecoding: false, maxResolutionInMP: 1, maxMemoryUsageInMB: 24 }); }
+                try { image = decode(jpeg, { useTArray: true, formatAsRGBA: false, tolerantDecoding: false,
+                    dcPreview: options.decoder === 'js-dc', maxResolutionInMP: 1, maxMemoryUsageInMB: 24 }); }
                 catch (e) { return finish(e, null, 'js'); }
-                finish(null, image, 'js');
+                finish(null, image, image.preview_scale > 1 ? 'js-dc' : 'js');
             }
             if (options.decoder === 'native' || options.decoder === 'auto') {
                 try {

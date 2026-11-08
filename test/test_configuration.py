@@ -81,6 +81,8 @@ class Configuration(unittest.TestCase):
             with self.subTest(value=value),self.assertRaises(ValueError):self.load(self.data)
 
     def test_fast_capture_options(self):
+        self.data['sender']['decoder']='js-dc'
+        self.assertEqual(self.load(self.data)['sender']['decoder'],'js-dc')
         self.data['sender'].update(jpeg_quality=35,decoder='auto',broker='auto',decode_scale=4,pipeline=True)
         self.assertTrue(self.load(self.data)['sender']['pipeline'])
         for name,value in [('jpeg_quality',19),('jpeg_quality',91),('jpeg_quality',True),
