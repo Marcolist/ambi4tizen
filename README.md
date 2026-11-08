@@ -1,9 +1,10 @@
-# Ambi4Tizen
+# Ambi4Tizen — DIY Ambilight for Samsung Tizen 4 TVs
 
-**Native TV colors. Local light.**
-
-An experimental Ambilight prototype for Samsung TVs running **Tizen 4.0** and
-an **ESP32** receiver driving WS2812B LEDs. The “4” means both “for” and Tizen 4.
+Ambi4Tizen brings DIY Ambilight to built-in Samsung Smart TV apps without an
+HDMI sync box. It is an experimental setup tested on a **Samsung UE65NU7179
+with Tizen 4.0 and firmware 1360**, using an **ESP32** to drive a WS2812B LED strip.
+Limited tests showed changing LED colors with Netflix, Prime Video and Disney+.
+See [project status](#project-status) for the scope of testing.
 
 ![Ambi4Tizen prototype with blue and green LED backlighting matching the TV image](docs/images/ambilight-live-demo.jpg)
 
@@ -16,6 +17,14 @@ Internal TV app → TV-side capture → RGB edge zones → Wi-Fi/UDP → ESP32 �
 The TV processes its own image. Only averaged colors are transmitted, never
 video frames or JPEGs. The intended operating chain needs no permanent PC
 service, HDMI capture device, external streaming client or cloud service.
+
+[Check the tested setup](#project-status) ·
+[Start with the installation guide](#1-prepare-the-tv-development-tools) ·
+[Report your TV's compatibility](https://github.com/Marcolist/ambi4tizen/issues/new)
+
+If you try Ambi4Tizen, please include your TV model, Tizen and firmware versions
+if known, the app you tested, and what happened. Keep device identifiers, local
+network details and credentials out of public reports.
 
 ## Risk, warranty and liability
 
