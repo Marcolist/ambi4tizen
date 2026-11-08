@@ -43,6 +43,7 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | TV color plausibility | Live RGB zones were judged plausible by the operator; the prototype photo shows corresponding blue/green backlighting. Color accuracy has not been calibrated |
 | New TV sender | Continuous operation tested on the TV; one 70-second post-update window delivered 70/70 frames to the S3 without new invalid/stale packets or sender errors; long-term reliability unverified |
 | Faster capture target | Experimental 100-ms target delivered about 4.47 sends/s in a short live window; the earlier 250-ms target delivered about 3.83/s. Physical LED latency and playback need separate checks |
+| Optional faster paths | Native scaled JPEG decoder, persistent D-Bus and bounded capture/decode pipeline implemented on `codex/faster-refreshes`; local tests pass, TV live validation pending. [Build and live gate](docs/faster-refreshes.md) |
 | Adaptive transitions | Classic ESP32 receiver runs up to 80-ms normal / 25-ms fast smoothing; software paths observed in diagnostics, visible transition quality still needs checking |
 | ESP32 firmware | Classic ESP32 Arduino / Adafruit NeoPixel 1.12.3 passed a visible weak-red test on 83 LEDs / GPIO18; [reproducible build](firmware/README.md#tested-classic-esp32-arduino-build). ESP-IDF SPI remains an alternative without confirmed visible output on this setup |
 | Visible end-to-end test | Multicolor LED output demonstrated in the owner-provided prototype photo; physical latency, letterbox behavior, transition quality and long-duration reliability still need separate validation |
@@ -147,7 +148,7 @@ Before an active test, also configure these values locally:
 | `firmware.udp_port`, `sender.port` | Matching UDP port; default 19446 |
 | `sender.zones` | 6, 12, 18 or 24; default 12 |
 | `sender.resolution` | Initially `480x270` |
-| `sender.interval_ms` | Initially `1000`; experimental minimum `250`, subject to live load checks |
+| `sender.interval_ms` | Initially `1000`; experimental minimum `100`, subject to live load checks |
 | `sender.duration_ms` | Initially `30000`; `0` explicitly selects continuous operation |
 
 Set `sender.enabled=true` only before a deliberate active test. **Every TV

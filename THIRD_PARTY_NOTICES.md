@@ -29,3 +29,35 @@ These dependencies are downloaded by PlatformIO and retain their upstream
 licenses; no library source or private binary is published here. The tested
 platform, pixel format and initialization sequence follow the owner's
 [EspMoveLamp project](https://github.com/Marcolist/EspMoveLamp).
+
+## Optional native JPEG worker
+
+`tools/build_native.py` downloads unmodified libjpeg-turbo 3.2.1 from its
+[official release](https://github.com/libjpeg-turbo/libjpeg-turbo/releases/tag/3.2.1)
+and verifies the pinned SHA256 before building. Upstream source and binary
+outputs are kept in ignored local storage. The generated WGT includes upstream
+`LICENSE.md`, `README.ijg` and the required attribution:
+
+**This software is based in part on the work of the Independent JPEG Group.**
+
+The wrapper in `native/jpeg_worker.c` belongs to this project's MIT-licensed
+code. libjpeg-turbo retains its own IJG and BSD-style terms; see the license
+files in the downloaded release. The build uses the libjpeg API; it does not
+build TurboJPEG, cjpeg or djpeg. Compiler and C library components retain their
+respective licenses; generated private binaries are not published here.
+
+## Optional persistent D-Bus client
+
+`tools/tv-deps/package.json` pins dbus-native 0.4.0, with exact transitive
+versions and integrity hashes in `package-lock.json`. `tools/prepare_tv_deps.py`
+installs them in ignored local storage without lifecycle scripts or optional
+native modules. Their existing copyright/license files are preserved when
+packaging. dbus-native uses the MIT license; transitive dependencies retain
+the licenses declared in their individual packages.
+
+One documented local change is applied to `dbus-native/lib/message.js`: reject
+non-little-endian/protocol-version-1 frames and header/body lengths above
+65,536 bytes before buffering their payload. Upstream notices remain intact.
+Only a fixed Unix pathname socket and EXTERNAL authentication are used; no
+abstract-socket native addon, TCP discovery or arbitrary command transport is
+part of the production client.

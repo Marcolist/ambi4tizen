@@ -1,11 +1,12 @@
 #pragma once
 #include "receiver.h"
-typedef struct { bool set_mode,set_brightness,set_ambient; ambi_mode_t mode; uint8_t brightness; ambi_rgb_t ambient; } ambi_command_t;
+typedef struct { bool set_mode,set_brightness,set_ambient,set_smoothing; ambi_mode_t mode; uint8_t brightness; ambi_rgb_t ambient; uint16_t smoothing_ms; } ambi_command_t;
 typedef struct {
     ambi_mode_t requested,effective;
     bool wifi,led_ready,stream;
     unsigned leds,estimated_ma,free_heap,min_heap;
     unsigned smoothing_ms;
+    unsigned smoothing_limit_ms;
     uint32_t scene_changes;
     bool fast_transition;
     uint64_t uptime_ms;

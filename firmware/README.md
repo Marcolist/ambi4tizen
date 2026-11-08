@@ -195,7 +195,8 @@ python3 tools/controller.py AUTO
 python3 tools/controller.py OFF
 ```
 
-`/command` accepts only `mode`, `brightness` and/or `ambient`. HTTP 202 confirms
+`/command` accepts only `mode`, `brightness`, `ambient` and/or
+`smoothing_ms` (integer 0–3000). HTTP 202 confirms
 entry into the bounded command queue. Check status afterward and avoid frequent
 writes. This endpoint cannot change network settings, GPIO or output enable.
 The same command structure is the intended entry point for a future Zigbee adapter.
@@ -205,6 +206,25 @@ heap, mode, LED driver state and estimated current. Driver state does not prove
 that a physical strip is attached or visibly responding.
 The adaptive firmware also reports `color_algorithm`, selected `smoothing_ms`,
 `fast_transition` and the `scene_changes` count since boot.
+The refresh-optimization firmware adds `smoothing_limit_ms`, the configured
+normal-transition cap, separately from the currently selected adaptive time.
+
+After flashing that firmware onto the verified receiver, change the cap without
+another flash:
+
+```sh
+python3 tools/controller.py AUTO --smoothing-ms 40
+python3 tools/controller.py status
+```
+
+This saves the setting in the existing NVS format. Zero disables smoothing;
+40 ms is a candidate for testing, while broad cuts retain the faster adaptive
+path (up to 25 ms). Smoothing changes perceived response, not TV capture speed.
+The running receiver needs the new firmware before this command is supported.
+Before a USB update, disconnect the strip, external supply and all other wires.
+Identify the intended Ambilight device by chip/MAC and USB adapter; another ESP
+such as a server display must never be selected by a changing ttyUSB number.
+Build instructions above do not flash automatically.
 
 ## Evidence and remaining tests
 

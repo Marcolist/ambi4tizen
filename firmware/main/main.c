@@ -46,6 +46,7 @@ void app_main(void) {
             ambi_config_t next=config;
             if(command.set_mode) { next.mode=command.mode; if(command.mode==AMBI_OFF)next.ambient_on=false; if(command.mode==AMBI_AMBIENT)next.ambient_on=true; }
             if(command.set_brightness)next.brightness=command.brightness;
+            if(command.set_smoothing)next.smoothing_ms=command.smoothing_ms;
             if(command.set_ambient) {next.ambient=command.ambient;next.ambient_on=true;}
             /* Commit first. A failed NVS write must not pretend the setting persisted. */
             error=configuration_save(&next);
@@ -60,6 +61,7 @@ void app_main(void) {
                 .leds=ambi_led_count(&config),.estimated_ma=colors.estimated_ma,.free_heap=esp_get_free_heap_size(),.min_heap=esp_get_minimum_free_heap_size(),
                 .uptime_ms=now,.stream=have_frame && now-latest.received_ms<=config.timeout_ms,.last_error=last_error};
             status.smoothing_ms=colors.active_smoothing_ms;status.fast_transition=colors.fast_transition;
+            status.smoothing_limit_ms=config.smoothing_ms;
             status.scene_changes=colors.scene_changes;
             ambi_receiver_stats(&status.rx); ambi_diagnostics_publish(&status); last_report=now;
             if(now%10000<1000)ESP_LOGI(TAG,"mode=%u heap=%u accepted=%lu stale=%lu led=%u",effective,status.free_heap,(unsigned long)status.rx.accepted,(unsigned long)status.rx.stale,status.led_ready);

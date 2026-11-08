@@ -42,5 +42,19 @@ class DeploymentGuard(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Target mismatch'):deploy.main()
             sdb.assert_not_called()
 
+    def test_stop_waits_for_listener_close(self):
+        events=[]
+        def request(route,method='GET'):
+            events.append((route,method))
+            if len(events)==3:raise ConnectionRefusedError()
+        with patch.object(deploy.time,'sleep'):
+            deploy.stop_and_drain(request)
+        self.assertEqual(events,[('stop','POST'),('status','GET'),('status','GET')])
+
+    def test_timeout_does_not_count_as_closed(self):
+        def request(*args):raise TimeoutError()
+        with self.assertRaisesRegex(RuntimeError,'installation stopped'):
+            deploy.stop_and_drain(request)
+
 
 if __name__=='__main__':unittest.main()

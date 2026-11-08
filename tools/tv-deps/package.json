@@ -1,0 +1,8 @@
+{
+  "name": "ambi4tizen-tv-dependencies",
+  "private": true,
+  "version": "0.1.0",
+  "dependencies": {
+    "dbus-native": "0.4.0"
+  }
+}

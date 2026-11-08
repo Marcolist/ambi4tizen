@@ -14,6 +14,29 @@ import urllib.error
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def stop_and_drain(request):
+    """Only a refused/reset connection confirms that the old listener closed."""
+    def closed(error):
+        reason = error.reason if isinstance(error, urllib.error.URLError) else error
+        return isinstance(reason, (ConnectionRefusedError, ConnectionResetError))
+    try:
+        request('stop', 'POST')
+    except OSError as error:
+        if closed(error):
+            return
+        raise RuntimeError('Cannot confirm own service shutdown; installation stopped') from error
+    until = time.monotonic() + 7
+    while time.monotonic() < until:
+        try:
+            request('status')
+        except OSError as error:
+            if closed(error):
+                return
+            raise RuntimeError('Cannot confirm capture cleanup; installation stopped') from error
+        time.sleep(.2)
+    raise RuntimeError('Own service did not finish capture cleanup; installation stopped')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['install', 'launch', 'status', 'capture', 'stop', 'metrics'])
@@ -66,11 +89,7 @@ def main():
 
     try:
         if args.action == 'install':
-            try:
-                request('stop', 'POST')
-                time.sleep(1)
-            except OSError:
-                pass
+            stop_and_drain(request)
             package = ROOT / 'poc/build' / package_name
             record['sha256'] = hashlib.sha256(package.read_bytes()).hexdigest()
             remote = '/home/owner/share/tmp/sdk_tools/' + package_name

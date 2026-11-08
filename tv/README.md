@@ -2,7 +2,8 @@
 
 The existing service's proven capture call remains the foundation. The new
 `ambiSend40` app is a separately built UDP sender with a configurable time limit, disabled by default.
-A live test of the new sender including LED output is still pending. Setup:
+Visible multicolor output has been demonstrated with the baseline sender. The
+optional faster paths on `codex/faster-refreshes` still require a TV live test. Setup:
 [main README](../README.md). The diagnostic package remains separate.
 
 The shared capture core is `poc/web-probe/capture-core.js`. During packaging,
@@ -10,7 +11,8 @@ its actual implementation replaces the repository import shim in `tv/`.
 The legacy diagnostic retains its six full-frame grid zones and maximum of
 12 captures per launch.
 
-Capture uses normal mode 0 / application type 0 / composition 1, quality 55.
+Capture uses normal mode 0 / application type 0 / composition 1. JPEG quality
+defaults to 55 and can be set to 20–90.
 There is no mode probing, root access, system-file modification or image export.
 A RAM JPEG is read, decoded, summarized and deleted under its own bounded
 filename. Unexpected returned paths are neither opened nor deleted. Cleanup
@@ -33,6 +35,11 @@ Create the private file/header as described in the
 | resolution | 480x270, alternatively 320x180 or 160x90 |
 | interval_ms | 1000 by default; experimental minimum 100; target cadence, not a frame-rate guarantee |
 | duration_ms | 30000 by default; 0 explicitly selects continuous operation; otherwise 1000–3600000 |
+| jpeg_quality | 55 by default; integer 20–90; compare 35 for lower JPEG cost |
+| decoder | `js` (default), `native` (strict), or `auto` (native with JS fallback) |
+| decode_scale | Native decode denominator 1, 2, 4 or 8; default 1; reduced if either side would become smaller than 24 pixels |
+| broker | `process` (default), `persistent` (strict), or `auto` (persistent with process fallback) |
+| pipeline | `false` by default; one-frame lookahead during decoding, with bounded buffers |
 
 ```sh
 python3 tools/build_sender.py
@@ -40,7 +47,8 @@ python3 tools/build_sender.py
 
 The build uses locally configured Samsung/Tizen SDK signing tools and a local
 .NET SDK **on the development computer only**. The TV package contains HTML,
-ES5/Node code and the existing licensed JPEG decoder. Output:
+ES5/Node code and the existing licensed JPEG decoder. Optional local builds
+add the ARM worker and pinned D-Bus JavaScript dependencies. Output:
 `poc/build/ambilight-sender.wgt`. Without private configuration, the package is
 signed but its service performs no work on startup. Private keys are written
 only into the ignored local package. Building does not install or contact the TV.
@@ -65,9 +73,13 @@ source IP. A disabled sender configuration cannot be launched. Without
 
 ## Load and profiling
 
-Only one capture can run at a time. The next starts after the configured
-interval or after the previous capture finishes, whichever is later. No capture
-backlog is queued, and additional zones do not require additional captures.
+Only one broker capture can run at a time. By default the next frame starts
+after the configured interval or completion, whichever is later. With the
+optional pipeline, the next broker capture may overlap asynchronous native
+decoding. There is at most one queued JPEG, one decoder request and one broker
+request. A slow target cadence suppresses early lookahead to avoid aging frames.
+Stop drains an in-flight capture and deletes its RAM file; installation waits
+for the old listener to close. Additional zones do not require more captures.
 UDP output occurs after successful cleanup and contains at most 120 bytes.
 Captures older than 1500 ms are not sent. Three consecutive processing/send
 errors stop the run. Default: roughly one capture per second for 30 seconds.
@@ -110,8 +122,13 @@ zone processing, optional hashing and cleanup, plus initial/peak/latest RSS
 and heap. `continuous`, `running` and `stop_reason` describe sender state.
 `last_sent` contains only the most recently sent packet's averaged RGB zones,
 section counts, sequence, encoding-time age and current `capture_age_ms`.
-Its `width` and `height` report the decoded image dimensions; verify these
-when comparing requested capture resolutions, since device behavior may vary.
+Its `width` and `height` report decoded dimensions; `source_width` and
+`source_height` report the original broker/JPEG dimensions. Verify both: the
+tested device previously returned 480x270 for a 320x180 request. Smaller JPEG
+requests and reduced native decoding are separate optimizations. `jpeg_bytes`,
+`quality`, `decoder_backend`, `broker_backend` and `native_decode_ms` identify
+the actual path. `capture_engine` includes fallback/queue counters and native
+worker RSS where available, separate from the Node process RSS.
 `sample_rect` reports the active picture rectangle, `letterbox` indicates a
 confirmed crop, and `profile_ms` contains timings for this particular frame.
 It is null before the first successful send and is replaced rather than queued.
@@ -135,3 +152,39 @@ extending tests or increasing the rate. Continuous mode is not a reliability gua
 Investigate boot startup only after a visible end-to-end success. Currently the
 app must be started deliberately. Reliable background startup when the TV turns
 on remains unresolved; manifest options alone do not prove it works.
+
+## Optional faster paths (live validation pending)
+
+See [refresh optimization and live gate](../docs/faster-refreshes.md) for the
+implementation, limitations, comparison commands and rollback procedure.
+
+Prerequisites: Python 3.12+, CMake, a host C compiler, npm and, for the TV binary,
+`arm-linux-gnueabihf-gcc` with its cross libc development files. Preparation
+runs only on the development computer; it does not contact or modify the TV.
+
+```sh
+python3 tools/build_native.py --target host
+python3 tools/build_native.py --target armv7
+python3 tools/prepare_tv_deps.py
+python3 tools/build_sender.py
+```
+
+The worker statically links pinned libjpeg-turbo 3.2.1 and requires ARMv7/NEON.
+The package builder verifies ARM architecture, binary hash and worker source
+hash. Source downloads, dependencies, licenses and binaries remain in `.local`.
+The package includes upstream licenses. This software is based in part on the
+work of the Independent JPEG Group.
+
+Authenticated `GET /capabilities` performs a fixed worker self-test and capture
+broker introspection. It exposes no arbitrary path or command execution.
+Native execution and direct system-bus access must pass in the actual Tizen
+application sandbox. A host test or QEMU execution cannot establish that.
+`auto` falls back if the worker is absent, rejected or fails. A persistent bus
+failure may retry the current frame through `dbus-send` only if the capture was
+never submitted. A submitted/timed-out capture is not duplicated; the next
+frame can use the process fallback. Strict backends report an error instead.
+
+Raw RGB capture is not implemented: the inspected normal broker's proven
+synchronous file method returns JPEG. Other asynchronous/XWD methods do not
+provide a verified usable raw buffer in this application context. `comp_type`
+is composition selection, not a JPEG/raw format switch; it remains 1.

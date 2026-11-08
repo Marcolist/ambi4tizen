@@ -20,11 +20,17 @@ exports.create = function (config, dependencies) {
             config.duration_ms !== Math.floor(config.duration_ms) || (config.duration_ms !== 0 && config.duration_ms < 1000) || config.duration_ms > 3600000 ||
             ['480x270', '320x180', '160x90'].indexOf(config.resolution) === -1 ||
             !(config.edge_depth >= 0.02 && config.edge_depth <= 0.25)) throw new Error('sender configuration');
+        if (config.jpeg_quality !== undefined && (config.jpeg_quality !== Math.floor(config.jpeg_quality) || config.jpeg_quality < 20 || config.jpeg_quality > 90) ||
+            config.decoder !== undefined && ['js','native','auto'].indexOf(config.decoder) === -1 ||
+            config.broker !== undefined && ['process','persistent','auto'].indexOf(config.broker) === -1 ||
+            config.decode_scale !== undefined && [1,2,4,8].indexOf(config.decode_scale) === -1 ||
+            config.pipeline !== undefined && typeof config.pipeline !== 'boolean') throw new Error('capture configuration');
     }
     socket.on('error', function () { metrics.errors++; stop('socket_error'); });
     function stop(reason) {
         if (running) metrics.stop_reason = reason || 'requested';
         running = false; metrics.running = false; if (timer) cancel(timer);
+        if (capture.stop) capture.stop();
     }
     function profile(result) {
         Object.keys(result.profile_ms || {}).forEach(function (name) {
@@ -41,7 +47,8 @@ exports.create = function (config, dependencies) {
         if (!running || inFlight) return;
         var began = clock(); if (began >= deadline) return stop('duration');
         inFlight = true;
-        capture({ resolution: config.resolution, hash: false }, summarize, function (result) {
+        capture({ resolution: config.resolution, hash: false, quality: config.jpeg_quality, interval_ms: config.interval_ms,
+            decoder: config.decoder, broker: config.broker, decode_scale: config.decode_scale, pipeline: config.pipeline }, summarize, function (result) {
             inFlight = false; metrics.captures++; profile(result);
             if (!running) return;
             if (clock() >= deadline) return stop('duration');
@@ -64,6 +71,10 @@ exports.create = function (config, dependencies) {
                         for (var i = 0; i < count; i++) colors.push([packet[32 + 3*i], packet[33 + 3*i], packet[34 + 3*i]]);
                         metrics.last_sent = { sequence: packet.readUInt32BE(16), age_ms: packet.readUInt16BE(24),
                             width: result.colors.width, height: result.colors.height,
+                            source_width: result.source_width, source_height: result.source_height,
+                            jpeg_bytes: result.jpeg_bytes, quality: result.quality,
+                            decoder_backend: result.decoder_backend, broker_backend: result.broker_backend,
+                            native_decode_ms: result.native_decode_ms,
                             sample_rect: result.colors.sample_rect, letterbox: result.colors.letterbox,
                             profile_ms: result.profile_ms || {},
                             sections: [packet[27], packet[28], packet[29]], zones_rgb: colors };
@@ -79,12 +90,13 @@ exports.create = function (config, dependencies) {
     return {
         start: function () { validate(); if (running || inFlight) throw new Error('already active'); running = true; metrics.running = true;
             metrics.stop_reason = null; metrics.consecutive_errors = 0;
-            deadline = config.duration_ms === 0 ? Infinity : clock() + config.duration_ms; tick(); },
+            deadline = config.duration_ms === 0 ? Infinity : clock() + config.duration_ms; if (capture.start) capture.start(); tick(); },
         stop: stop,
-        close: function () { stop(); socket.close(); },
-        busy: function () { return inFlight; },
+        close: function () { stop(); if (capture.close) capture.close(); socket.close(); },
+        busy: function () { return inFlight || !!(capture.busy && capture.busy()); },
         metrics: function () {
             var snapshot = JSON.parse(JSON.stringify(metrics));
+            if (capture.stats) snapshot.capture_engine = capture.stats();
             if (snapshot.last_sent) snapshot.last_sent.capture_age_ms = Math.max(0, Math.ceil(clock() - lastCaptureStart));
             return snapshot;
         }

@@ -80,5 +80,13 @@ class Configuration(unittest.TestCase):
             self.data['sender']['interval_ms']=value
             with self.subTest(value=value),self.assertRaises(ValueError):self.load(self.data)
 
+    def test_fast_capture_options(self):
+        self.data['sender'].update(jpeg_quality=35,decoder='auto',broker='auto',decode_scale=4,pipeline=True)
+        self.assertTrue(self.load(self.data)['sender']['pipeline'])
+        for name,value in [('jpeg_quality',19),('jpeg_quality',91),('jpeg_quality',True),
+                           ('decoder','shell'),('broker','raw'),('decode_scale',3),('decode_scale',True),('pipeline',1)]:
+            bad=deepcopy(self.data);bad['sender'][name]=value
+            with self.subTest(name=name,value=value),self.assertRaises(ValueError):self.load(bad)
+
 
 if __name__=='__main__':unittest.main()

@@ -86,3 +86,24 @@ localized motion/noise rejection, rearranged palettes, session/layout resets,
 sequence wrap, cadence-independent response, OFF/AMBIENT semantics and output
 limits. The cut response is checked over elapsed time, including repeated
 renders of the same frame so the speed does not revert midway through a fade.
+
+## Optional refresh-path checks
+
+Build the optional worker and D-Bus dependencies before the full suite to enable
+all checks (see [TV build instructions](../tv/README.md#optional-faster-paths-live-validation-pending)).
+Missing optional workers/dependencies are reported as skipped. With the D-Bus
+dependencies installed, `dbus-run-session` must be available for the private-bus
+test. The suite never connects to the machine's system bus.
+
+Additional checks cover persistent native decoding and scale/color accuracy,
+malformed-JPEG recovery, bounded protocol input, one-child reuse, cancellation,
+one-frame pipeline bounds, no overlapping broker calls, stop/drain behavior,
+slow-cadence freshness and automatic JS fallback. A real private session bus
+handles five synthetic fixed capture calls on one connection under current
+Node and Node 4.4.3. Failure tests distinguish safe pre-submission fallback from
+unsafe duplicate capture after submission. Benchmark tests ensure credentials
+are preserved and frame rate is derived from counters rather than poll samples.
+
+The ARM helper is also built and can be smoke-tested with QEMU, but these tests
+do not prove Tizen executable permissions, NEON availability or direct D-Bus
+access. The [live gate](../docs/faster-refreshes.md) remains separate.

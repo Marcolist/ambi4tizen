@@ -24,6 +24,11 @@ module.exports.onStart = function () {
         }
         if (peer !== CONFIG.developer_ip || req.headers.authorization !== 'Bearer ' + CONFIG.diagnostic_token) return reply(403, { error: 'denied' });
         if (req.method === 'GET' && req.url === '/status') return reply(200, sender.metrics());
+        if (req.method === 'GET' && req.url === '/capabilities') {
+            // Fixed preflight may wait up to 2.5 s; ordinary status keeps 2 s.
+            if (req.connection.setTimeout) req.connection.setTimeout(5000);
+            return require('./capabilities').inspect(function (data) { reply(200, data); });
+        }
         if (req.method === 'POST' && req.url === '/stop') { reply(200, { stopping: true }); return shutdown(); }
         reply(404, { error: 'not found' });
     });

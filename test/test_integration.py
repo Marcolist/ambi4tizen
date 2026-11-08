@@ -25,11 +25,21 @@ node=os.environ.get('AMBI_NODE','node')
 subprocess.run([node,'test/test_tv.js'],check=True)
 subprocess.run([node,'test/test_sender_lifecycle.js'],check=True)
 subprocess.run([node,'test/test_letterbox.js'],check=True)
+subprocess.run([node,'test/test_capture_pipeline.js'],check=True)
+subprocess.run([node,'test/test_broker_failures.js'],check=True)
+subprocess.run([node,'test/test_native_adapter.js'],check=True)
+if (ROOT/'.local/tv-node/node_modules/dbus-native').exists():
+    subprocess.run(['dbus-run-session','--',node,'test/test_dbus_session.js'],check=True)
 old=ROOT/'.local/node-v4.4.3-linux-x64/bin/node'
 if old.exists() and str(old)!=node:
     subprocess.run([str(old),'test/test_tv.js'],check=True)
     subprocess.run([str(old),'test/test_sender_lifecycle.js'],check=True)
     subprocess.run([str(old),'test/test_letterbox.js'],check=True)
+    subprocess.run([str(old),'test/test_capture_pipeline.js'],check=True)
+    subprocess.run([str(old),'test/test_broker_failures.js'],check=True)
+    subprocess.run([str(old),'test/test_native_adapter.js'],check=True)
+    if (ROOT/'.local/tv-node/node_modules/dbus-native').exists():
+        subprocess.run(['dbus-run-session','--',str(old),'test/test_dbus_session.js'],check=True)
 else:
     print('Node 4.4.3 compatibility run skipped: local runtime missing')
 spec=importlib.util.spec_from_file_location('pattern',ROOT/'tools/pattern_sender.py');pattern=importlib.util.module_from_spec(spec);spec.loader.exec_module(pattern)
