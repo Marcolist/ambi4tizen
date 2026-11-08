@@ -1,4 +1,5 @@
 #include "diagnostics.h"
+#include "ambi_led.h"
 #include "esp_http_server.h"
 #include "cJSON.h"
 #include <string.h>
@@ -24,10 +25,10 @@ static esp_err_t status_get(httpd_req_t *req) {
     if(!authorized(req))return reject(req,"401 Unauthorized","authorization required");
     ambi_status_t s; portENTER_CRITICAL(&lock); s=current; portEXIT_CRITICAL(&lock);
     char json[850];
-    snprintf(json,sizeof(json),"{\"requested\":\"%s\",\"effective\":\"%s\",\"wifi\":%s,\"led_ready\":%s,\"leds\":%u,\"estimated_ma\":%u,\"free_heap\":%u,\"min_heap\":%u,\"uptime_ms\":%llu,\"stream\":%s,\"last_error\":%d,\"color_algorithm\":\"adaptive-v1\",\"smoothing_ms\":%u,\"fast_transition\":%s,\"scene_changes\":%lu,\"rx\":{\"accepted\":%lu,\"invalid\":%lu,\"unauthorized\":%lu,\"stale\":%lu,\"socket_errors\":%lu}}",
+    snprintf(json,sizeof(json),"{\"requested\":\"%s\",\"effective\":\"%s\",\"wifi\":%s,\"led_ready\":%s,\"leds\":%u,\"estimated_ma\":%u,\"free_heap\":%u,\"min_heap\":%u,\"uptime_ms\":%llu,\"stream\":%s,\"last_error\":%d,\"led_backend\":\"%s\",\"color_algorithm\":\"adaptive-v1\",\"smoothing_ms\":%u,\"fast_transition\":%s,\"scene_changes\":%lu,\"rx\":{\"accepted\":%lu,\"invalid\":%lu,\"unauthorized\":%lu,\"stale\":%lu,\"socket_errors\":%lu}}",
         names[s.requested],names[s.effective],s.wifi?"true":"false",s.led_ready?"true":"false",s.leds,s.estimated_ma,
         s.free_heap,s.min_heap,(unsigned long long)s.uptime_ms,s.stream?"true":"false",s.last_error,
-        s.smoothing_ms,s.fast_transition?"true":"false",(unsigned long)s.scene_changes,
+        ambi_led_backend(),s.smoothing_ms,s.fast_transition?"true":"false",(unsigned long)s.scene_changes,
         (unsigned long)s.rx.accepted,(unsigned long)s.rx.invalid,(unsigned long)s.rx.unauthorized,(unsigned long)s.rx.stale,(unsigned long)s.rx.socket_errors);
     httpd_resp_set_type(req,"application/json"); return httpd_resp_sendstr(req,json);
 }

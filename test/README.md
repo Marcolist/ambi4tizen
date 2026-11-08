@@ -31,6 +31,9 @@ the suite explicitly reports the skipped compatibility run.
 * TV: actual JPEG decoder on a synthetic image, 6/12/18/24 zones, 200 capture
   evaluations per runtime, no overlapping captures, cleanup on broker/decoder/
   dimension/path errors and sender shutdown after three stale captures.
+* Letterbox sampling: synthetic and compressed black bars, active top-edge
+  colors, dark-scene retention, subtitles, full-frame release and size changes
+  under current Node and Node 4.4.3.
 * Integration: actual Node sender/decoder → real loopback UDP → actual C parser,
   mode manager and color engine. An independent Python encoder checks language
   interoperability, alongside invalid authentication, oversized packets, stale
@@ -74,7 +77,7 @@ and launcher reopening under Node 4.4.3. Virtual-clock receiver tests span about
 69 days with clock drift and wrap, checking that a delayed frame cannot refresh
 the reference before passing the lag check. Bottom-right physical mapping and
 target-specific reserved GPIO exclusions are covered without touching hardware.
-The experimental 250-ms target is checked with captures shorter and longer
+The experimental 100-/250-ms targets are checked with captures shorter and longer
 than its interval: fast captures wait for the next slot; slow ones serialize
 without a backlog. Configuration values below the supported floor are rejected.
 

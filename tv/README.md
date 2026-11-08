@@ -31,7 +31,7 @@ Create the private file/header as described in the
 | zones | 6, 12, 18 or 24; default 12 |
 | edge_depth | 0.02–0.25; default 0.1 |
 | resolution | 480x270, alternatively 320x180 or 160x90 |
-| interval_ms | 1000 by default; experimental minimum 250; target cadence, not a frame-rate guarantee |
+| interval_ms | 1000 by default; experimental minimum 100; target cadence, not a frame-rate guarantee |
 | duration_ms | 30000 by default; 0 explicitly selects continuous operation; otherwise 1000–3600000 |
 
 ```sh
@@ -76,6 +76,34 @@ At an experimental 250-ms interval a capture taking longer than the interval
 reduces the delivered rate; captures still never overlap or build a backlog.
 Monitor sender/receiver counters and visible playback while testing higher rates.
 
+A short live 100-ms comparison on November 8 produced about 4.47 sends/s,
+with capture-to-send median/p95 of 232/468 ms. The new letterbox sender's
+preceding 250-ms window delivered about 3.83 sends/s and 187/407 ms. Content/load
+were not held constant, so these sequential observations do not establish a
+causal reduction in acquisition time. The 100-ms window showed no new sender
+errors or receiver freshness rejections; counter snapshots are not exact
+per-frame acknowledgments. Physical screen-to-LED delay remains unmeasured.
+
+A lower target removes cadence waiting when capture takes longer than the target;
+it cannot shorten the broker/JPEG operation itself or guarantee 10 frames/s.
+Increased capture duty can affect playback: compare real stage timings,
+receiver counters and playback before retaining a lower interval.
+
+## Letterbox content sampling
+
+The sender detects paired near-black horizontal bars and samples the top edge
+inside the visible picture. Side zones span the visible picture height, so
+wide-screen movies do not force the top LEDs off just because the screen has
+black bars. Dark picture content can still correctly produce dark LEDs.
+
+Two matching frames confirm a crop. It persists through black fades and subtitle
+overlays; three frames with broadly lit outer top/bottom edges restore full-frame
+sampling. Only nearly symmetric horizontal bars up to about 24% per side are
+handled. Asymmetric, colored, very large or vertical bars are not detected.
+This is a conservative pixel heuristic, not a content/aspect-ratio API. Local
+synthetic/JPEG tests pass under Node 4.4.3. The updated package is installed on
+the test TV; a user-confirmed letterboxed scene and visible LED check are pending.
+
 HTTP 18793 accepts only the private developer IP and bearer token.
 `GET /status` returns aggregate timings for broker, file read, JPEG decode,
 zone processing, optional hashing and cleanup, plus initial/peak/latest RSS
@@ -84,6 +112,8 @@ and heap. `continuous`, `running` and `stop_reason` describe sender state.
 section counts, sequence, encoding-time age and current `capture_age_ms`.
 Its `width` and `height` report the decoded image dimensions; verify these
 when comparing requested capture resolutions, since device behavior may vary.
+`sample_rect` reports the active picture rectangle, `letterbox` indicates a
+confirmed crop, and `profile_ms` contains timings for this particular frame.
 It is null before the first successful send and is replaced rather than queued.
 Use its current age before interpreting colors as live. A successful UDP send
 does not prove reception or physical LED output. No JPEG or image pixels are

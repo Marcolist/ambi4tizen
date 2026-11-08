@@ -57,7 +57,7 @@ def load_config(path=PRIVATE):
             raise ValueError('TV source IP and Wi-Fi required')
     if sender['port'] != fw['udp_port'] or sender['zones'] not in (6,12,18,24) or sender['resolution'] not in ('480x270','320x180','160x90'):
         raise ValueError('sender layout/transport')
-    for name,lo,hi in [('interval_ms',250,10000),('duration_ms',0,3600000)]:
+    for name,lo,hi in [('interval_ms',100,10000),('duration_ms',0,3600000)]:
         if type(sender[name]) is not int or not lo <= sender[name] <= hi:
             raise ValueError(name)
     if 0 < sender['duration_ms'] < 1000:
@@ -70,6 +70,27 @@ def load_config(path=PRIVATE):
 def c_string(value):
     # UTF-8 bytes encoded as octal avoids ambiguous C hex escapes and non-ASCII compiler settings.
     return '"' + ''.join('\\%03o' % byte for byte in value.encode()) + '"'
+
+
+def render_header(data, startup_off=False):
+    """Render validated local settings without printing or saving credentials."""
+    lines=['#pragma once','#include <string.h>','#include "sdkconfig.h"',
+           '#if !defined(CONFIG_IDF_TARGET_'+data.get('target','esp32').upper()+')',
+           '#error "Private configuration target does not match the SDK target"','#endif',
+           'static void ambi_private_config(ambi_config_t *c) {',
+           '    c->profile_id = %du;' % data['profile_id']]
+    for name,value in data['firmware'].items():
+        if isinstance(value,str):
+            lines.append('    memcpy(c->%s, %s, %d);' % (name,c_string(value),len(value.encode())+1))
+        else:
+            lines.append('    c->%s = %s;' % (name,str(value).lower()))
+    lines.append('    memcpy(c->api_token, %s, 65);' % c_string(data['api_token']))
+    lines.append('    const uint8_t key[32] = {'+', '.join(str(v) for v in bytes.fromhex(data['key_hex']))+'};')
+    lines.append('    memcpy(c->key, key, 32);')
+    if startup_off:
+        lines.append('    c->mode = AMBI_OFF;')
+    lines.append('}')
+    return '\n'.join(lines)+'\n'
 
 
 def main():
@@ -89,21 +110,8 @@ def main():
         print('Private configuration initialized; sender and LEDs disabled.')
         return
     data=load_config(args.config)
-    lines=['#pragma once','#include <string.h>','#include "sdkconfig.h"',
-           '#if !defined(CONFIG_IDF_TARGET_'+data.get('target','esp32').upper()+')',
-           '#error "Private configuration target does not match the SDK target"','#endif',
-           'static void ambi_private_config(ambi_config_t *c) {',
-           '    c->profile_id = %du;' % data['profile_id']]
-    for name,value in data['firmware'].items():
-        if isinstance(value,str):
-            lines.append('    memcpy(c->%s, %s, %d);' % (name,c_string(value),len(value.encode())+1))
-        else:
-            lines.append('    c->%s = %s;' % (name,str(value).lower()))
-    lines.append('    memcpy(c->api_token, %s, 65);' % c_string(data['api_token']))
-    lines.append('    const uint8_t key[32] = {'+', '.join(str(v) for v in bytes.fromhex(data['key_hex']))+'};')
-    lines.extend(['    memcpy(c->key, key, 32);','}'])
     out=ROOT/'firmware/main/private_config.h'
-    out.write_text('\n'.join(lines)+'\n');out.chmod(0o600)
+    out.write_text(render_header(data));out.chmod(0o600)
     print('Private header generated. No build, installation or hardware access performed.')
 
 

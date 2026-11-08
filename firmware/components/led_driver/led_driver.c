@@ -5,6 +5,7 @@
 #include "gpio_policy.h"
 static led_strip_handle_t strip;
 static unsigned length;
+const char *ambi_led_backend(void) { return "esp-idf-spi-dma"; }
 static bool safe_gpio(int pin) {
 #if CONFIG_IDF_TARGET_ESP32S3
     return ambi_gpio_allowed(pin, true);

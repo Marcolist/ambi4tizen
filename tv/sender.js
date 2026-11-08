@@ -3,6 +3,7 @@ var zones = require('./zones'), protocol = require('./protocol'), core = require
 exports.create = function (config, dependencies) {
     var d = dependencies || {}, clock = d.clock || core.clock, capture = d.capture || core.create();
     var socket = d.socket || require('dgram').createSocket('udp4');
+    var summarize = zones.createSampler(config.zones, config.edge_depth);
     var later = d.setTimeout || setTimeout, cancel = d.clearTimeout || clearTimeout;
     var session = (d.randomBytes || require('crypto').randomBytes)(8), sequence = 0;
     var key = new Buffer(config.key_hex || '', 'hex'), running = false, inFlight = false, timer, deadline, lastCaptureStart;
@@ -15,7 +16,7 @@ exports.create = function (config, dependencies) {
         if (address.length !== 4 || !address.every(function (p) { return /^(0|[1-9][0-9]{0,2})$/.test(p) && Number(p) <= 255; }) ||
             Number(address[0]) === 0 || Number(address[0]) >= 224 || Number(address[3]) === 255 || Number(address[3]) === 0) throw new Error('unicast IPv4 required');
         if (config.port !== Math.floor(config.port) || config.port < 1024 || config.port > 65535 ||
-            config.interval_ms !== Math.floor(config.interval_ms) || config.interval_ms < 250 || config.interval_ms > 10000 ||
+            config.interval_ms !== Math.floor(config.interval_ms) || config.interval_ms < 100 || config.interval_ms > 10000 ||
             config.duration_ms !== Math.floor(config.duration_ms) || (config.duration_ms !== 0 && config.duration_ms < 1000) || config.duration_ms > 3600000 ||
             ['480x270', '320x180', '160x90'].indexOf(config.resolution) === -1 ||
             !(config.edge_depth >= 0.02 && config.edge_depth <= 0.25)) throw new Error('sender configuration');
@@ -40,7 +41,7 @@ exports.create = function (config, dependencies) {
         if (!running || inFlight) return;
         var began = clock(); if (began >= deadline) return stop('duration');
         inFlight = true;
-        capture({ resolution: config.resolution, hash: false }, function (image) { return zones.summarize(image, config.zones, config.edge_depth); }, function (result) {
+        capture({ resolution: config.resolution, hash: false }, summarize, function (result) {
             inFlight = false; metrics.captures++; profile(result);
             if (!running) return;
             if (clock() >= deadline) return stop('duration');
@@ -63,6 +64,8 @@ exports.create = function (config, dependencies) {
                         for (var i = 0; i < count; i++) colors.push([packet[32 + 3*i], packet[33 + 3*i], packet[34 + 3*i]]);
                         metrics.last_sent = { sequence: packet.readUInt32BE(16), age_ms: packet.readUInt16BE(24),
                             width: result.colors.width, height: result.colors.height,
+                            sample_rect: result.colors.sample_rect, letterbox: result.colors.letterbox,
+                            profile_ms: result.profile_ms || {},
                             sections: [packet[27], packet[28], packet[29]], zones_rgb: colors };
                         lastCaptureStart = result.started_ms;
                     }

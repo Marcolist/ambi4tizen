@@ -22,3 +22,10 @@ OpenSSL and Python dependencies are not vendored in this source repository.
 They retain their respective licenses. ESP-IDF/led_strip dependencies are
 pinned in the firmware manifest/lock file. Generated packages and firmware
 images are excluded from this repository.
+
+The classic ESP32 Arduino receiver pins the PlatformIO espressif32 platform
+to 6.9.0 and Adafruit NeoPixel to 1.12.3 in `firmware/arduino/platformio.ini`.
+These dependencies are downloaded by PlatformIO and retain their upstream
+licenses; no library source or private binary is published here. The tested
+platform, pixel format and initialization sequence follow the owner's
+[EspMoveLamp project](https://github.com/Marcolist/EspMoveLamp).

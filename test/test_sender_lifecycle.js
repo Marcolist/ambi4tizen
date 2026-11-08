@@ -44,7 +44,11 @@ var draining = harness(0); draining.hold(); draining.sender.start(); assert(drai
 draining.sender.stop(); draining.complete(); assert(!draining.sender.busy()); assert.strictEqual(draining.sends(), 0);
 var socketError = harness(0); socketError.sender.start(); socketError.socket.emit('error', new Error('injected'));
 assert.strictEqual(socketError.sender.metrics().stop_reason, 'socket_error'); assert(!socketError.scheduled());
-assert.throws(function () { harness(0, 249).sender.start(); });
+assert.throws(function () { harness(0, 99).sender.start(); });
+var quickest = harness(0, 100, 220); quickest.sender.start();
+assert.strictEqual(quickest.delay(), 0); quickest.advance();
+assert.strictEqual(quickest.sender.metrics().last_sent.age_ms, 220);
+assert.strictEqual(quickest.sends(), 2); quickest.sender.close();
 var fast = harness(0, 250, 100); fast.sender.start(); assert.strictEqual(fast.delay(), 150);
 fast.advance(); assert.strictEqual(fast.delay(), 150); assert.strictEqual(fast.sender.metrics().last_sent.age_ms, 100); fast.sender.close();
 var slow = harness(0, 250, 400); slow.sender.start();

@@ -1,13 +1,16 @@
-# ESP32 / ESP32-S3 prototype
+# ESP32 receiver firmware
 
-The firmware builds for the classic ESP32 and ESP32-S3 using **ESP-IDF 5.5.6**.
-`espressif/led_strip` is pinned to **3.1.1**; `dependencies.lock` records the
-resolved dependency. An ESP32-S3 was flashed with LED output disabled: Wi-Fi,
-authenticated HTTP, TV UDP reception and manual OFF persistence across physical
-restart passed. A later S3 image also initialized the GPIO18 driver for 91 pixels
-without a connected strip, and restored saved OFF across a physical restart.
-It includes the rolling freshness reference and disabled Wi-Fi modem sleep.
-Physical LED output remains untested.
+The **classic ESP32 Arduino / Adafruit NeoPixel build** passed a visible weak-red
+test with 83 LEDs on GPIO18 on November 8, 2026. It uses the same pinned platform,
+library and initialization sequence as [EspMoveLamp](https://github.com/Marcolist/EspMoveLamp):
+PlatformIO **espressif32 6.9.0**, Arduino framework and **Adafruit NeoPixel 1.12.3**,
+`NEO_GRB + NEO_KHZ800`. The receiver also accepts live authenticated TV frames;
+visual matching during full live playback remains a separate check.
+
+The alternative ESP-IDF build supports classic ESP32 and ESP32-S3 with
+**ESP-IDF 5.5.6 / led_strip 3.1.1**, but its SPI output has not passed a visible
+strip test on this setup. Earlier S3 diagnostics only established software
+initialization and network behavior, not a working physical LED receiver.
 
 ## Architecture
 
@@ -17,22 +20,72 @@ Physical LED output remains untested.
 | `color_engine` | U-shaped mapping, corner interpolation, time-based smoothing, gamma, brightness and estimated current limiting |
 | `mode_manager` | OFF, AMBILIGHT, AMBIENT, AUTO and manual priority |
 | `configuration` | Validated settings, versioned CRC blob and a dedicated NVS namespace |
-| `led_driver` | WS2812/GRB through Espressif's SPI driver with DMA |
+| `led_driver` | Arduino: Adafruit NeoPixel; ESP-IDF alternative: SPI with DMA |
 | `diagnostics` | Authenticated status requests and manual commands |
 | `main` | Single owner for modes/settings and a 20-ms output loop |
 
-SPI2 is reserved entirely for the LED strip. Only its data line is needed; the
+The Arduino adapter reuses the existing C receiver, color engine, NVS and API.
+Only the entry point and LED backend change. Adafruit NeoPixel uses its classic
+ESP32 RMT implementation on this pinned Arduino platform.
+
+For the alternative ESP-IDF backend, SPI2 is reserved entirely for the LED strip. Only its data line is needed; the
 strip does not need a separate clock wire. DMA avoids the classic ESP32's
 RMT interrupt load when Wi-Fi is active. GPIO initialization requires validated
 configuration and explicit `output_enabled`. Defaults: disabled, GPIO −1, zero LEDs.
 
-Initialization and the first black output must succeed; otherwise the driver
-is released. A later output error triggers a best-effort black output and stops
+For the ESP-IDF backend, initialization and the first black output must succeed;
+otherwise the driver is released. A later reported output error triggers a best-effort black output and stops
 the driver while networking/diagnostics remain active. A broken data connection
 cannot reliably clear colors already latched by LEDs. Software OFF is not an
-electrical power disconnect.
+electrical power disconnect. The Adafruit `show()` API returns no transmission
+result; its ready flag confirms allocation/initialization, not measured output.
 
 ## Build locally
+
+### Tested classic ESP32 Arduino build
+
+Install PlatformIO Core. Configure `.local/ambilight-config.json` as described
+below, with `target="esp32"`, then prepare and build:
+
+```sh
+python3 tools/prepare_arduino.py
+pio run -d .local/arduino-receiver
+```
+
+The preparation tool copies the portable production components and Arduino
+adapter into an ignored private project. It generates credentials there with
+permissions 0600, leaves the TV package untouched and never accesses hardware.
+Run preparation again after configuration or source changes. The compiled
+startup mode is OFF; valid existing NVS settings still take priority. Changing
+`profile_id` applies the new compiled defaults on the next boot.
+
+Before flashing, disconnect the strip and external supply, identify the chip
+and MAC on the **specific USB adapter**, and back up the existing flash. With
+multiple ESP devices attached, confirm the physical role by unplugging only
+the intended board and checking which adapter disappears. An adapter name or
+`/dev/ttyUSB0` alone is not sufficient identification.
+
+For a fresh, verified classic ESP32 board, PlatformIO can install the complete
+image using an explicit stable device path:
+
+```sh
+pio run -d .local/arduino-receiver -t upload --upload-port /dev/serial/by-id/REPLACE_WITH_VERIFIED_ADAPTER
+```
+
+This may replace the partition table. For an existing Ambi4Tizen installation,
+use an application-only update at `0x10000` **only after verifying** that its
+active application partition starts there and is large enough for the new
+image. Preserve bootloader, partition table and NVS; do not apply the default
+PlatformIO partition layout blindly. Never flash this classic ESP32 image to
+an ESP32-S3 or another attached display/controller.
+
+After USB-only flashing, power down before reconnecting the strip. Begin with
+a dim static color; use the external supply directly for the full strip, with
+common GND. The ESP USB/5V pin is not a supply path for a full-brightness strip.
+Confirm physical light output and then enable AUTO. A successful `show()` or
+`led_ready=true` does not measure the actual data signal or prove visible light.
+
+### Alternative ESP-IDF build
 
 Install official ESP-IDF 5.5.6 with the ESP32 tools. If installed under the
 ignored `.local/` directory, use:
@@ -147,7 +200,7 @@ entry into the bounded command queue. Check status afterward and avoid frequent
 writes. This endpoint cannot change network settings, GPIO or output enable.
 The same command structure is the intended entry point for a future Zigbee adapter.
 
-Status reports receive counters, invalid/stale packets, Wi-Fi state, free/minimum
+Status reports `led_backend`, receive counters, invalid/stale packets, Wi-Fi state, free/minimum
 heap, mode, LED driver state and estimated current. Driver state does not prove
 that a physical strip is attached or visibly responding.
 The adaptive firmware also reports `color_algorithm`, selected `smoothing_ms`,
@@ -159,7 +212,9 @@ The adaptive firmware also reports `color_algorithm`, selected `smoothing_ms`,
 the NVS adapter against a failure-injecting memory stub and the TV sender chain
 over actual UDP loopback. See the [test guide](../test/README.md). Wi-Fi
 reconnection and NVS across a physical restart passed on one S3 receiver with
-output disabled. GPIO timing, LED wiring and visible output remain untested.
+output disabled. A classic ESP32 with the Arduino NeoPixel backend subsequently
+passed a user-observed 83-pixel weak-red test. Live color mapping, flicker,
+latency, long-duration operation and other strip variants need separate checks.
 Hardware/TV checks: [test plan](../docs/esp32-hardware-test.txt).
 
 Portable components can be reused for ESP32-C6. Pins, SPI driver, SDK version

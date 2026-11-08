@@ -3,7 +3,11 @@
 **Native TV colors. Local light.**
 
 An experimental Ambilight prototype for Samsung TVs running **Tizen 4.0** and
-an **ESP32 / ESP32-S3** receiver intended to drive WS2812B LEDs. The “4” means both “for” and Tizen 4.
+an **ESP32** receiver driving WS2812B LEDs. The “4” means both “for” and Tizen 4.
+
+![Ambi4Tizen prototype with blue and green LED backlighting matching the TV image](docs/images/ambilight-live-demo.jpg)
+
+*Ambi4Tizen in operation: Samsung Tizen 4 TV, classic ESP32 and 83 LEDs.*
 
 ```text
 Internal TV app → TV-side capture → RGB edge zones → Wi-Fi/UDP → ESP32 → LEDs
@@ -36,12 +40,12 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | --- | --- |
 | Existing capture prototype | Successful bounded single-frame tests on UE65NU7179, Tizen 4.0 / ARMv7, firmware 1360 |
 | Internal streaming apps | Changing colors in limited Netflix, Prime Video and Disney+ tests; no universal codec/HDR guarantee |
-| TV color plausibility | Live averaged RGB zones were compared with the visible TV image and judged plausible by the operator; physical LED color matching remains unverified |
+| TV color plausibility | Live RGB zones were judged plausible by the operator; the prototype photo shows corresponding blue/green backlighting. Color accuracy has not been calibrated |
 | New TV sender | Continuous operation tested on the TV; one 70-second post-update window delivered 70/70 frames to the S3 without new invalid/stale packets or sender errors; long-term reliability unverified |
-| Faster capture target | Experimental 250-ms target measured at about 3.83 sent frames/s in a 40-second live window; visible playback and physical LED latency need separate checks |
-| Adaptive transitions | S3 receiver deployed with up to 80-ms normal / 25-ms fast smoothing; both paths observed in live diagnostics, physical LED response unverified |
-| ESP32 firmware | Classic ESP32 and ESP32-S3 builds using ESP-IDF 5.5.6 / led_strip 3.1.1; S3 flashed, networking/NVS restart and 91-pixel driver initialization tested without connected LEDs |
-| Visible end-to-end test | Pending; a complete TV-to-LED solution has not yet been demonstrated |
+| Faster capture target | Experimental 100-ms target delivered about 4.47 sends/s in a short live window; the earlier 250-ms target delivered about 3.83/s. Physical LED latency and playback need separate checks |
+| Adaptive transitions | Classic ESP32 receiver runs up to 80-ms normal / 25-ms fast smoothing; software paths observed in diagnostics, visible transition quality still needs checking |
+| ESP32 firmware | Classic ESP32 Arduino / Adafruit NeoPixel 1.12.3 passed a visible weak-red test on 83 LEDs / GPIO18; [reproducible build](firmware/README.md#tested-classic-esp32-arduino-build). ESP-IDF SPI remains an alternative without confirmed visible output on this setup |
+| Visible end-to-end test | Multicolor LED output demonstrated in the owner-provided prototype photo; physical latency, letterbox behavior, transition quality and long-duration reliability still need separate validation |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
 
 The TV sender and LED output are disabled by default. The software uses an
@@ -257,6 +261,20 @@ experimental target. The default stays at 1000 ms. Captures taking longer than
 the target lower the actual frame rate; captures never overlap or build a queue.
 Inspect receiver counters and visible playback after increasing the rate.
 
+The sender also accepts an experimental 100-ms target. A short November 8 run
+delivered about 4.47 sends/s, with capture-to-send median/p95 of 232/468 ms,
+no new sender errors and no new receiver freshness rejections. Different content
+and load prevent a controlled latency comparison with the previous window.
+This only removes cadence waiting; it cannot bypass broker/JPEG cost. These
+software timings do not measure physical screen-to-LED delay; playback needs
+separate checking.
+
+The new sender samples the active picture inside paired horizontal black bars,
+with hysteresis for fades/subtitles. This prevents a letterboxed movie from
+forcing the top strip dark. Synthetic/JPEG tests pass and the package is installed;
+a confirmed letterboxed movie and visible LED check are pending.
+See [letterbox sampling](tv/README.md#letterbox-content-sampling).
+
 On the tested TV, requesting 320×180 still returned a decoded 480×270 image
 and did not improve the comparison. Check `last_sent.width` and `height`
 before assuming that a requested resolution was honored.
@@ -286,8 +304,9 @@ counters after the previous 30-second limit to confirm actual continued
 operation; `continuous=true` alone only identifies the configuration. An active
 sender does not prove that LEDs are wired or responding. Receiver changes
 require rebuilding and flashing the receiver separately; a TV app update cannot
-update ESP firmware. The latest S3 test image includes the rolling freshness
-reference and disabled Wi-Fi modem sleep, with physical LED output still pending.
+update ESP firmware. The tested classic ESP32 NeoPixel image includes the rolling
+freshness reference, adaptive color smoothing and disabled Wi-Fi modem sleep.
+Earlier S3 driver initialization checks did not establish visible strip output.
 
 See [live-test preparation](docs/live-test.md) for the bottom-right start,
 30 LEDs/m estimates, power assumptions and the checks before enabling LEDs.

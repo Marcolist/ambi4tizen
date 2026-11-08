@@ -1,2 +1,2 @@
 idf_component_register(SRCS "diagnostics.c"
-    INCLUDE_DIRS "." REQUIRES ambilight_receiver esp_http_server json)
+    INCLUDE_DIRS "." REQUIRES ambilight_receiver led_driver esp_http_server json)
