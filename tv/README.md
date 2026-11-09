@@ -21,6 +21,15 @@ failure stops the sender. Unexpected process termination or a broker writing
 late after timeout could leave RAM files; cleanup across every TV lifecycle
 event has not been demonstrated.
 
+## Catalog distribution
+
+`catalog/` supplies a separate generic Start/Stop launcher and service with two
+installer placeholders. Build it with `python3 tools/build_catalog.py` from the
+repository root. It excludes the private diagnostic server and requires explicit
+manual Start after receiver validation. See [Apps2Samsung packaging and the
+live gate](../docs/apps2samsung.md). The private developer build below is not a
+public release artifact.
+
 ## Configuration and local build
 
 Create the private file/header as described in the

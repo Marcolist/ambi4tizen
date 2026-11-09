@@ -56,6 +56,7 @@ See the [MIT license](LICENSE) for the full warranty disclaimer and liability te
 | Adaptive transitions | Classic ESP32 receiver runs up to 80-ms normal / 25-ms fast smoothing; software paths observed in diagnostics, visible transition quality still needs checking |
 | ESP32 firmware | Classic ESP32 Arduino / Adafruit NeoPixel 1.12.3 passed a visible weak-red test on 83 LEDs / GPIO18; [reproducible build](firmware/README.md#tested-classic-esp32-arduino-build). ESP-IDF SPI remains an alternative without confirmed visible output on this setup |
 | Visible end-to-end test | Multicolor output demonstrated in the prototype photo; the operator also confirmed faster response, plausible colors and top-strip behavior with black bars using the DC preview. Long-duration reliability and physical latency measurements remain open |
+| Apps2Samsung package | Generic template and catalog manifest prepared; local lifecycle/package checks pass. Installation through Apps2Samsung on the TV is still pending; no catalog availability is claimed |
 | Boot startup / ESP32-C6 / Zigbee / Hue | Later phases, not implemented or confirmed |
 
 The TV sender and LED output are disabled by default. The software uses an
@@ -75,6 +76,40 @@ are unchanged. This mode needs no new ESP firmware.
 
 DC preview intentionally discards fine detail. The visible check passed on one
 setup, not every image/app/model. See [measurements, tradeoffs and limitations](docs/faster-refreshes.md).
+
+## Apps2Samsung receiver settings
+
+The proposed catalog package uses two installer fields, with no TV setup menu:
+
+| Field | Value to enter locally in Apps2Samsung |
+| --- | --- |
+| ESP32 IPv4 address | The address of the ESP32 running **Ambi4Tizen receiver firmware**. Reserve it in DHCP so it stays the same |
+| UDP key | The existing **64 hexadecimal characters** from the top-level `key_hex` in your private `.local/ambilight-config.json`. This must match the key flashed to the ESP32; it is **not** `api_token` or your Wi-Fi password |
+
+Set up the [ESP32 receiver](firmware/README.md) and its power/wiring first. Stock
+WLED firmware does not implement this project's authenticated UDP protocol.
+Never paste the key into an issue, chat, screenshot, commit or release. If the
+receiver is already configured, reuse its key; generating another one without
+updating the ESP32 will break authentication.
+
+Apps2Samsung writes both values into `service.js` before signing for your TV.
+Its desktop installer remembers the field values for updates; keep those values
+private on the installation computer. To change them, reinstall with the new
+values. Open Ambi4Tizen on the TV and explicitly press **Start**. Once started,
+the window hides and the background sender runs until stopped or the TV/app
+shuts down. Reopen the app and choose **Stop** to end capture. Installation,
+opening the launcher and service startup alone do not start capture. Invalid
+or missing receiver settings keep the sender idle.
+
+This variant uses the tested DC-preview profile above, 12 zones and UDP port
+19446, with black-bar handling. It has no TV HTTP diagnostics/control endpoint,
+boot startup or on-TV credential editor. It still relies on the same experimental
+Samsung capture service and retains the model/firmware limitations above.
+
+**Catalog installation is not yet validated or published.** See the
+[catalog build and TV acceptance checklist](docs/apps2samsung.md). The developer
+installation below builds a separate private package with diagnostics; it must
+never be uploaded as the public catalog artifact.
 
 ## Run local tests without a TV or LEDs
 

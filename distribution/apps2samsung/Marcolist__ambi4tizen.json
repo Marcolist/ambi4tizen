@@ -1,0 +1,38 @@
+{
+  "name": "Ambi4Tizen",
+  "description": "Experimental ambient lighting for built-in Samsung Tizen 4 TV apps. Sends edge colors to an ESP32 running Ambi4Tizen firmware over authenticated UDP. Configure the receiver before installation, then press Start on the TV.",
+  "category": "tools",
+  "repo": "Marcolist/ambi4tizen",
+  "source": "release",
+  "branch": "main",
+  "assets": [
+    {
+      "match": "^ambi4tizen-catalog[.]wgt$",
+      "output_name": "Ambi4Tizen.wgt"
+    }
+  ],
+  "user_settings": {
+    "help_url": "https://github.com/Marcolist/ambi4tizen#apps2samsung-receiver-settings",
+    "file": "service.js",
+    "fields": [
+      {
+        "key": "esp_ip",
+        "label": "ESP32 IPv4 address (reserve it in DHCP)",
+        "type": "text",
+        "required": true,
+        "pattern": "^(?!127\\.)(?:[1-9]|[1-9][0-9]|1[0-9]{2}|2[01][0-9]|22[0-3])\\.(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.(?:[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-4])$",
+        "find": "\"esp_ip\": \"\"",
+        "replace": "\"esp_ip\": \"{value}\""
+      },
+      {
+        "key": "key_hex",
+        "label": "Ambi4Tizen UDP key (64 hexadecimal characters; not the API token)",
+        "type": "text",
+        "required": true,
+        "pattern": "^(?!0{64}$)[0-9a-fA-F]{64}$",
+        "find": "\"key_hex\": \"\"",
+        "replace": "\"key_hex\": \"{value}\""
+      }
+    ]
+  }
+}

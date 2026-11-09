@@ -32,6 +32,7 @@ key=bytes(range(32));keyfile=output/'test-psk.hex';keyfile.write_text(key.hex()+
 node=os.environ.get('AMBI_NODE','node')
 subprocess.run([node,'test/test_tv.js'],check=True)
 subprocess.run([node,'test/test_sender_lifecycle.js'],check=True)
+subprocess.run([node,'test/test_catalog.js'],check=True)
 subprocess.run([node,'test/test_letterbox.js'],check=True)
 subprocess.run([node,'test/test_capture_pipeline.js'],check=True)
 subprocess.run([node,'test/test_broker_failures.js'],check=True)
@@ -45,6 +46,7 @@ old=ROOT/'.local/node-v4.4.3-linux-x64/bin/node'
 if old.exists() and str(old)!=node:
     subprocess.run([str(old),'test/test_tv.js'],check=True)
     subprocess.run([str(old),'test/test_sender_lifecycle.js'],check=True)
+    subprocess.run([str(old),'test/test_catalog.js'],check=True)
     subprocess.run([str(old),'test/test_letterbox.js'],check=True)
     subprocess.run([str(old),'test/test_capture_pipeline.js'],check=True)
     subprocess.run([str(old),'test/test_broker_failures.js'],check=True)

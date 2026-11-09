@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Ambi4Tizen</title>
+<style>
+body{background:#111820;color:#f4f8fb;font:30px sans-serif;margin:80px;line-height:1.5}
+button{background:#243546;color:inherit;border:3px solid #657585;border-radius:12px;padding:18px 38px;font:inherit;margin-right:28px}
+button:focus{border-color:#6ce8ce;outline:4px solid #6ce8ce}
+p{max-width:1200px;color:#c3d0da}#state{color:#6ce8ce}
+</style></head><body>
+<h1>Ambi4Tizen</h1>
+<p>Press OK on Start to sync your lights. It keeps running when you return to your film.</p>
+<button id="start">Start</button><button id="stop">Stop</button>
+<p id="state">Ready. Receiver settings come from Apps2Samsung.</p>
+<p>To change the receiver address or key, reinstall with Apps2Samsung. Press Back to close this window.</p>
+<script>
+window.onload = function () {
+    var start = document.getElementById('start'), stop = document.getElementById('stop');
+    var state = document.getElementById('state'), pending = false;
+    function send(action) {
+        if (pending) return;
+        pending = true; state.textContent = action === 'start' ? 'Starting…' : 'Stopping…';
+        var timeout = setTimeout(function () { pending = false; state.textContent = 'No response. Please try again.'; }, 8000);
+        function failed() { clearTimeout(timeout); pending = false; state.textContent = 'Unable to start the lights. Please check your Apps2Samsung settings.'; }
+        try {
+            var app = tizen.application.getCurrentApplication();
+            tizen.application.launchAppControl(new tizen.ApplicationControl('https://local.invalid/ambi4tizen/' + action),
+                app.appInfo.packageId + '.Service', function () {}, failed, {
+                    onsuccess: function (data) {
+                        clearTimeout(timeout); pending = false;
+                        var status = data && data[0] && data[0].value && data[0].value[0];
+                        if (status === 'started' || status === 'already_running') {
+                            state.textContent = 'Lights are running.'; app.hide();
+                        } else if (status === 'stopped') state.textContent = 'Lights stopped.';
+                        else if (status === 'configuration_required') state.textContent = 'Receiver settings are missing or invalid. Please reinstall with Apps2Samsung.';
+                        else state.textContent = 'Please try again.';
+                    }, onfailure: failed
+                });
+        } catch (e) { failed(); }
+    }
+    start.onclick = function () { send('start'); }; stop.onclick = function () { send('stop'); };
+    document.addEventListener('keydown', function (event) {
+        if (event.keyCode === 10009) { event.preventDefault(); tizen.application.getCurrentApplication().exit(); }
+        if (event.keyCode === 37 || event.keyCode === 38) { event.preventDefault(); start.focus(); }
+        if (event.keyCode === 39 || event.keyCode === 40) { event.preventDefault(); stop.focus(); }
+        if (event.keyCode === 13) { event.preventDefault(); send(document.activeElement === stop ? 'stop' : 'start'); }
+    });
+    document.addEventListener('tizenhwkey', function (event) {
+        if (event.keyName === 'back') tizen.application.getCurrentApplication().exit();
+    });
+    start.focus();
+};
+</script></body></html>

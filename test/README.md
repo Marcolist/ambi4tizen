@@ -13,6 +13,11 @@ the suite explicitly reports the skipped compatibility run.
 
 ## Coverage
 
+* Catalog service/launcher: explicit manual Start, missing/invalid receiver fields,
+  caller isolation, idempotence, error cleanup, stop/drain and renamed package IDs
+  under current Node and Node 4.4.3. Reproducible WGT allowlist and private-value
+  exclusion; optional upstream catalog JSON schema validation. Actual Apps2Samsung
+  TV installation remains a separate [acceptance gate](../docs/apps2samsung.md).
 * Production C parser: HMAC, mutation at every byte position, truncation,
   invalid layout and 20,000 deterministically generated malformed packets.
 * Stream state: sequence/timestamp wrap, duplicates, stale capture, added arrival
